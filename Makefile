@@ -2,13 +2,13 @@
 
 CC=gcc
 CFLAGS=-Wall  -std=c99 -g
-LDFLAGS=
+LDFLAGS=-lm
 DEPS=
 
 all: packetsim 
 
 packetsim: packetsim.c $(DEPS)
-	$(CC) $(CFLAGS) packetsim.c cbuffer.c -o packetsim $(LD_FLAGS)
+	$(CC) $(CFLAGS) packetsim.c scheduler.c pbuffer.c $(LDFLAGS) -o packetsim
 
 clean:
 	rm packetsim
