@@ -6,6 +6,7 @@ typedef struct {
    int source;
    int dest;
    int size;
+   int flow_id;
 } packet;
 
 
@@ -33,9 +34,14 @@ typedef struct {
     struct pbuffer *en;
 } QUEUE;
 
+typedef struct {
+   SCHED* sched;
+   QUEUE* queue;
+} WRED;
 
-void packet_init(packet* self, int id, int t, int source, int dest, int size);
-packet* packet_create(int id, int t, int source, int dest, int size);
+
+void packet_init(packet* self, int id, int t, int source, int dest, int flow_id, int size);
+packet* packet_create(int id, int t, int source, int dest, int flow_id, int size);
 packet* packet_create_noinit();
 void packet_copy(packet* from_p, packet* to_p);
 void packet_destroy(packet* obj);
@@ -49,3 +55,7 @@ void queue_clear(struct pbuffer **st, struct pbuffer **en);
 void queue_destroy(QUEUE* obj);
 void queue_put(QUEUE* self, packet* p);
 void queue_get(QUEUE* self, packet* p);
+void wred_init(WRED* self, SCHED* sched);
+WRED* wred_create(SCHED* sched, int linerate);
+void wred_destroy(WRED* obj);
+void wred_put(WRED* self, packet* p);

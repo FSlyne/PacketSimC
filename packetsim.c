@@ -38,6 +38,7 @@ typedef struct {
     SCHED* sched;
     int source;
     int dest;
+    int flow_id;
     void (* out)(void* , int);
     void *typex;
     int (*arrivalfn)();
@@ -45,17 +46,18 @@ typedef struct {
 } PKT;
 
 
-void pkt_init(PKT* self, SCHED* sched, int source, int dest) {
+void pkt_init(PKT* self, SCHED* sched, int source, int dest, int flow_id) {
     self->pktcnt=0;
     self->status=0;
     self->sched=sched;
     self->source=source;
     self->dest=dest;
+    self->flow_id=flow_id;
 }
 
-PKT* pkt_create(SCHED* sched, int source, int dest) {
+PKT* pkt_create(SCHED* sched, int source, int dest, int flow_id) {
     PKT* obj=(PKT*) malloc(sizeof(PKT));
-    pkt_init(obj, sched, source, dest);
+    pkt_init(obj, sched, source, dest, flow_id);
     return obj;
 }
 
@@ -65,7 +67,8 @@ int  pkt_gen(PKT* self) {
         self->pktcnt=0;
     }
     // preprocess 
-    packet* p=packet_create((self->pktcnt)++, self->sched->now, self->source, self->dest, ((DIST*) self->arrivalfntype)->mean_pkt_size);
+    packet* p=packet_create((self->pktcnt)++, self->sched->now, self->source, self->dest,self->flow_id,
+                            ((DIST*) self->arrivalfntype)->mean_pkt_size);
     // postprocess
     // Need to replicate self.out.put(p) functionality
     self->out(self->typex, p);
@@ -74,7 +77,7 @@ int  pkt_gen(PKT* self) {
 }
 
 void pkt_stats(PKT* self) {
-   printf("Packets: %d\n", self->pktcnt);
+   printf("TX - packets: %d\n", self->pktcnt);
 }
 
 typedef struct {
@@ -109,7 +112,7 @@ void sink_put(SINK* self, packet *p) {
 }
 
 void sink_stats(SINK* self) {
-   printf("Bytes: %d, Packets: %d, Delay: %d\n", self->bytes_rcvd, self->pkt_rcvd, self->delay_cumul);
+   printf("RX - Bytes: %d, Packets: %d, Delay: %d\n", self->bytes_rcvd, self->pkt_rcvd, self->delay_cumul);
 }
 
 typedef struct {   
@@ -137,26 +140,51 @@ void box_put(BOX* self, packet *p) {
 }
 
 int main() {
-    SCHED* sched=sched_create(10); // seconds
-    PKT* pkt1=pkt_create(sched,1,3);
-    DIST* distfunc=dist_create(10,1000); // Transmission (Mbps), Mean Packet size (Bytes)
-//    QUEUE* queue1=queue_create(sched);
-    SINK* sink=sink_create(sched);
-    QUEUE* queue=queue_create(sched,4, 0, 128000, 0); // Mbps, Count limit, Byte limit, latency
-    
-    //pkt1->out=queue_put; pkt1->typex=queue1;pkt1->arrivalfn=dist_exec;pkt1->arrivalfntype=distfunc;
-    //pkt2->out=queue_put; pkt2->typex=queue1;pkt2->arrivalfn=dist_exec;pkt2->arrivalfntype=distfunc;
-    //queue1->out=sink_put;queue1->typex=sink;
-    //
-    pkt1->out=queue_put; pkt1->typex=queue; pkt1->arrivalfn=dist_exec; pkt1->arrivalfntype=distfunc;
-    queue->out=sink_put; queue->typex=sink;
-    
-    sched_reg(sched, pkt1, pkt_gen, 0);
-    
-    sched_run(sched);
-    
-    pkt_stats(pkt1);
-    sink_stats(sink);
+   
+    int scenario = 2;
+    if (scenario == 1) { // Single queue
+         SCHED* sched=sched_create(10); // seconds
+         PKT* pkt1=pkt_create(sched,1,3, 1); // from, to, flow_id
+         DIST* distfunc=dist_create(10,1000); // Transmission (Mbps), Mean Packet size (Bytes)
+     //    QUEUE* queue1=queue_create(sched);
+         SINK* sink=sink_create(sched);
+         QUEUE* queue=queue_create(sched,10, 0, 128000, 100); // Mbps, Packet Count limit, Packet Byte limit, latency (usec)
+         
+         //pkt1->out=queue_put; pkt1->typex=queue1;pkt1->arrivalfn=dist_exec;pkt1->arrivalfntype=distfunc;
+         //pkt2->out=queue_put; pkt2->typex=queue1;pkt2->arrivalfn=dist_exec;pkt2->arrivalfntype=distfunc;
+         //queue1->out=sink_put;queue1->typex=sink;
+         //
+         pkt1->out=queue_put; pkt1->typex=queue; pkt1->arrivalfn=dist_exec; pkt1->arrivalfntype=distfunc;
+         queue->out=sink_put; queue->typex=sink;
+         
+         sched_reg(sched, pkt1, pkt_gen, 0);
+         
+         sched_run(sched);
+         
+         pkt_stats(pkt1);
+         sink_stats(sink);
+    } else if (scenario == 2) { // WRED queue
+         SCHED* sched=sched_create(10); // seconds
+         PKT* pkt1=pkt_create(sched,1,3, 1); // from, to, flow_id
+         PKT* pkt2=pkt_create(sched,2,3, 2); // from, to, flow_id
+         DIST* distfunc=dist_create(10,1000); // Transmission (Mbps), Mean Packet size (Bytes)
+     //    QUEUE* queue1=queue_create(sched);
+         SINK* sink=sink_create(sched);
+         WRED* wred=wred_create(sched,17); // Mbps
+   
+         pkt1->out=wred_put; pkt1->typex=wred; pkt1->arrivalfn=dist_exec; pkt1->arrivalfntype=distfunc;
+         pkt2->out=wred_put; pkt2->typex=wred; pkt2->arrivalfn=dist_exec; pkt2->arrivalfntype=distfunc;
+         wred->queue->out=sink_put; wred->queue->typex=sink;
+         
+         sched_reg(sched, pkt1, pkt_gen, 0);
+         sched_reg(sched, pkt2, pkt_gen, 0);
+         
+         sched_run(sched);
+         
+         pkt_stats(pkt1);
+         pkt_stats(pkt2);
+         sink_stats(sink);
+    }
 
 }
 
