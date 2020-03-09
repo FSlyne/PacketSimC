@@ -203,6 +203,9 @@ void sched_run(SCHED* self) {
         }
         then=(*func_ptr)(typex);
         self->now=(now>self->now)?now:self->now;
+        if (self->now == 0) {
+            printf("Simulation Clock zero limit\n");
+        }
         //self->now=now;
         if (oneoff == 0) {
            sched_insert(&(self->st),&(self->en), typex, func_ptr, then, 0);

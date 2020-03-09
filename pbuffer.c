@@ -180,7 +180,7 @@ void packet_copy(packet* from_p, packet* to_p) {
 
 void packet_destroy(packet* obj){
     if (obj) {
-        //free(obj);
+        free(obj);
     }
 }
 
@@ -259,7 +259,7 @@ void queue_put(QUEUE* self, packet* p){
     }
     self->countsize++;
     self->bytesize+=p->size;
-    queue_lpush(&self->st,&self->en,p, 0);
+    queue_insert(&self->st,&self->en,p, 0);
     int interval=p->size*8/self->linerate;
     self->myclock=(self->myclock>self->sched->now)?self->myclock:self->sched->now;
     self->myclock+=interval; // microseconds
@@ -278,6 +278,8 @@ void wred_init(WRED* self, SCHED* sched){
 }
 
 WRED* wred_create(SCHED* sched, int linerate){
+    signed int t;
+    srand((unsigned) time(&t));
     WRED* obj=(WRED*) malloc(sizeof(WRED));
     wred_init(obj, sched);
     obj->queue=(QUEUE*)queue_create(sched,linerate, 0, 0, 0); // Mbps, Packet Count limit, Packet Byte limit, latency (usec)
@@ -302,5 +304,49 @@ void wred_put(WRED* self, packet* p) {
       queue_put(self->queue, p);
    }
 }
+
+void trtcm_init(TRTCM* self, SCHED* sched, int pir, int pbs, int cir, int cbs) {
+   self->sched=sched;
+   self->pir=pir;
+   self->pbs=pbs;
+   self->cir=cir;
+   self->cbs=cbs;
+   self->last_time=0;
+   self->pbucket=pbs;
+   self->cbucket=cbs;
+}
+
+TRTCM* trtcm_create(SCHED* sched, int pir, int pbs, int cir, int cbs){
+    TRTCM* obj=(TRTCM*) malloc(sizeof(TRTCM));
+    trtcm_init(obj, sched, pir, pbs, cir, cbs);
+    return obj;
+}
+
+void trtcm_destroy(TRTCM* obj){
+    if (obj) {
+        free(obj);
+    }
+}
+
+void trtcm_put(TRTCM* self, packet* p){
+   int time_inc=self->sched->now - self->last_time;
+   self->last_time=self->sched->now;
+   self->pbucket+=self->pir*time_inc/(8000000); // rate in bits, bucket in bytes
+   if (self->pbucket > self->pbs) self->pbucket=self->pbs;
+   self->cbucket+=self->cir*time_inc/(8000000); // rate in bits, bucket in bytes
+   if (self->cbucket > self->cbs) self->cbucket=self->cbs;
+   if (self->pbucket-p->size < 0) {
+      p->flow_id=2; // Mark as Red   
+   } else if (self->cbucket-p->size < 0) {
+      p->flow_id=1; // Mark as Yellow
+      self->pbucket-=p->size;
+   } else {
+      p->flow_id=0; // Mark as Green
+      self->pbucket-=p->size;
+      self->cbucket-=p->size;
+   }
+   //printf("%d %d %d %d\n", self->sched->now, time_inc, self->cbucket, self->pbucket);
+   self->out(self->typex, p);
+} 
 
 

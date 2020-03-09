@@ -39,6 +39,19 @@ typedef struct {
    QUEUE* queue;
 } WRED;
 
+typedef struct {
+   int pir;
+   int pbs;
+   int cir;
+   int cbs;
+   int pbucket;
+   int cbucket;
+   int last_time;
+   SCHED* sched;
+   void (* out)(void* , int);
+   void *typex;
+} TRTCM;
+
 
 void packet_init(packet* self, int id, int t, int source, int dest, int flow_id, int size);
 packet* packet_create(int id, int t, int source, int dest, int flow_id, int size);
@@ -59,3 +72,7 @@ void wred_init(WRED* self, SCHED* sched);
 WRED* wred_create(SCHED* sched, int linerate);
 void wred_destroy(WRED* obj);
 void wred_put(WRED* self, packet* p);
+void trtcm_init(TRTCM* self, SCHED* sched, int pir, int pbs, int cir, int cbs);
+TRTCM* trtcm_create(SCHED* sched, int pir, int pbs, int cir, int cbs);
+void trtcm_destroy(TRTCM* obj);
+void trtcm_put(TRTCM* self, packet* p);
