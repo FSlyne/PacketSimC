@@ -107,7 +107,7 @@ void sched_rpop(struct sbuffer **st, struct sbuffer **en,  void **typex, int (**
 
     if (*st == NULL && *en == NULL)
         {
-        printf("The stack is empty!\n");
+        //printf("The Scheduler stack is empty!\n");
         return;
         }
         
@@ -184,7 +184,7 @@ SCHED* sched_create(int finish){
 // https://codeforwin.org/2017/12/pass-function-pointer-as-parameter-another-function-c.html
 void sched_reg(SCHED* self, void *typex, int (*func_ptr()), int key){
    // key is given in seconds when called externally, so needs to be converted to microseconds
-   sched_insert(&(self->st),&(self->en), typex, func_ptr, key*pow(10,6),0);
+   sched_insert(&(self->st),&(self->en), typex, func_ptr, key ,0);
 }
 
 void sched_reg_oneoff(SCHED* self, void *typex, int (*func_ptr()), int key){
@@ -201,8 +201,9 @@ void sched_run(SCHED* self) {
         if (func_ptr==NULL) {
             continue;
         }
-        then=(*func_ptr)(typex);
         self->now=(now>self->now)?now:self->now;
+        then=(*func_ptr)(typex);
+        // printf(">%d %d\n", now, then);      
         if (self->now == 0) {
             printf("Simulation Clock zero limit\n");
         }

@@ -1,5 +1,6 @@
-#define BUFSIZE 2000
 
+#ifndef SCHEDULER_H
+#define SCHEDULER_H
 struct sbuffer
 {
     void (*func_ptr)();
@@ -11,7 +12,7 @@ struct sbuffer
 };
 
 typedef struct {
-    int now;
+    long now;
     int finish;
     struct sbuffer *st;
     struct sbuffer *en;
@@ -29,3 +30,5 @@ SCHED* sched_create(int finish);
 void sched_reg(SCHED* self, void *typex, int (*func_ptr()), int key);
 void sched_reg_oneoff(SCHED* self, void *typex, int (*func_ptr()), int key);
 void sched_run(SCHED* self);
+
+#endif // SCHEDULER_H
