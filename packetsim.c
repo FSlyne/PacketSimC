@@ -12,7 +12,7 @@
 
 int main() {
    
-    int scenario = 5;
+    int scenario = 6;
     if (scenario == 1) { // Single queue
          SCHED* sched=sched_create(10); // seconds
          PKT* pkt1=pkt_create(sched,1,3, 1); // from, to, flow_id
@@ -32,7 +32,7 @@ int main() {
          sink_stats(sink);
     } else if (scenario == 2) { // Simple NULL Box         
          SCHED* sched=sched_create(10); // seconds
-         PKT* pkt1=pkt_create(sched,1,3,1);
+         PKT* pkt1=pkt_create(sched,1,3,1);  // from, to, flow_id
          PKT* pkt2=pkt_create(sched,2,3,1);
          DIST* distfunc=dist_create(1,1000); // Transmission (Mbps), Mean Packet size (Bytes)
      //    QUEUE* queue1=queue_create(sched);
@@ -104,6 +104,29 @@ int main() {
          sched_run(sched);
          
          pkt_stats(pkt1);
+         sink_stats(sink);      
+    } else if (scenario == 6) { // DualQ
+         SCHED* sched=sched_create(10); // seconds
+         PKT* pkt1=pkt_create(sched,1,3, 0); // from, to, flow_id
+         PKT* pkt2=pkt_create(sched,2,3, 1); // from, to, flow_id
+         DIST* distfunc=dist_create(10,100); // Transmission (Mbps), Mean Packet size (Bytes)
+     //    QUEUE* queue1=queue_create(sched);
+         SINK* sink=sink_create(sched);
+
+         DUALQ* dualq=dualq_create(sched,10, 0, 0, 0);
+      
+         pkt1->out=dualq_put; pkt1->typex=dualq; pkt1->arrivalfn=dist_exec; pkt1->arrivalfntype=distfunc;
+         pkt2->out=dualq_put; pkt2->typex=dualq; pkt2->arrivalfn=dist_exec; pkt2->arrivalfntype=distfunc;
+         dualq->out=sink_put; dualq->typex=sink;
+                  
+         sched_reg(sched, pkt1, pkt_gen, 0);
+         sched_reg(sched, pkt2, pkt_gen, 0);
+         sched_reg(sched, dualq, dualq_update, 0);
+         
+         sched_run(sched);
+         
+         pkt_stats(pkt1);
+         pkt_stats(pkt2);
          sink_stats(sink);      
     }
 
