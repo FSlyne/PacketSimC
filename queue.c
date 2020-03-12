@@ -48,7 +48,6 @@ void queue_insert(struct pbuffer **st, struct pbuffer **en,  packet* p, int key)
 void queue_lpush(struct pbuffer **st, struct pbuffer **en,  packet* p, int key)
 {
     struct pbuffer *newnode;
-    struct pbuffer *idx, *tmp;
 
     newnode = (struct pbuffer *)malloc(sizeof(struct pbuffer));
     newnode->p=p;
@@ -96,6 +95,28 @@ void queue_rpop(struct pbuffer **st, struct pbuffer **en,  packet **p, int *key)
         free(top);
         return;
     }
+
+    *en = (*en)->prev;
+    (*en)->next=NULL;
+    free(top);
+    return ;
+ 
+}
+
+void queue_read(struct pbuffer **en,  packet **p, int *key)
+{
+    struct pbuffer *top;
+
+    if (*en == NULL)
+        {
+        //printf("The queue stack is empty!\n");
+        *p=(packet*) NULL;
+        return ;
+        }
+        
+    top = *en;
+    *p=top->p;
+    *key=top->key;
 
     *en = (*en)->prev;
     (*en)->next=NULL;

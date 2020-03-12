@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
+#include <time.h>
 #include "aqm.h"
 
 #define min(a,b) (((a)<(b))?(a):(b))
@@ -42,8 +43,7 @@ void wred_init(WRED* self, SCHED* sched){
 }
 
 WRED* wred_create(SCHED* sched, int linerate){
-    signed int t;
-    srand((unsigned) time(&t));
+    srand((unsigned) time(NULL));
     WRED* obj=(WRED*) malloc(sizeof(WRED));
     wred_init(obj, sched);
     obj->queue=(QUEUE*)queue_create(sched,linerate, 0, 0, 0); // Mbps, Packet Count limit, Packet Byte limit, latency (usec)
@@ -123,8 +123,7 @@ void dualq_init(DUALQ* self, SCHED* sched, int linerate, int countlimit, int byt
 }
 
 DUALQ* dualq_create(SCHED* sched, int linerate, int countlimit, int bytelimit){
-    signed int t;
-    srand((unsigned) time(&t));
+    srand((unsigned) time(NULL));
     DUALQ* obj=(DUALQ*) malloc(sizeof(DUALQ));
     dualq_init(obj, sched, linerate, countlimit, bytelimit);
     return obj;
@@ -149,7 +148,7 @@ int dualq_update(DUALQ* self) {
    return self->sched->now+self->tupdate;
 }
 
-void dualq_gen(DUALQ* self) {
+int dualq_gen(DUALQ* self) {
    int key;
    packet* p;
    queue_rpop(&(self->st), &(self->en), &p, &key);
@@ -164,7 +163,8 @@ void dualq_gen(DUALQ* self) {
    }
    self->llpktcount=max(0,self->llpktcount);
    self->clpktcount=max(0,self->clpktcount);
-   self->out(self->typex, p);   
+   self->out(self->typex, p);
+   return self->sched->now;
 }
 
 void dualq_put(DUALQ* self, packet* p) {

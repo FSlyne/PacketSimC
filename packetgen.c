@@ -1,5 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <math.h>
+#include <time.h>
 #include "packetgen.h"
 
 
@@ -9,7 +11,7 @@ void dist_init(DIST* self, int linerate, int mean_pkt_size) {
 }
 
 DIST* dist_create(int linerate, int mean_pkt_size) {
-    signed int t;
+    time_t t;
     srand((unsigned) time(&t));
     DIST* obj=(DIST*) malloc(sizeof(DIST));
     dist_init(obj, linerate, mean_pkt_size);

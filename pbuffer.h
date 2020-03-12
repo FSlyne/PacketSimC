@@ -4,7 +4,7 @@
 typedef struct {   
     int status;
     SCHED* sched;
-    void (* out)(void* , int);
+    void (* out)(void* , packet*);
     void *typex;
 } BOX;
 
@@ -17,7 +17,7 @@ typedef struct {
    int cbucket;
    int last_time;
    SCHED* sched;
-   void (* out)(void* , int);
+   void (* out)(void* , packet*);
    void *typex;
 } TRTCM;
 

@@ -10,7 +10,7 @@ typedef struct {
 typedef struct {
    SCHED* sched;
    void *typex;
-   void (* out)(void* , int);
+   void (* out)(void* , packet*);
    struct pbuffer *st;
    struct pbuffer *en;  
    int linerate;
@@ -67,7 +67,8 @@ WRED* wred_create(SCHED* sched, int linerate);
 void wred_destroy(WRED* obj);
 void wred_put(WRED* self, packet* p);
 void dualq_init(DUALQ* self, SCHED* sched, int linerate, int countlimit, int bytelimit);
+DUALQ* dualq_create(SCHED* sched, int linerate, int countlimit, int bytelimit);
 int dualq_laqm(DUALQ* self);
-void dualq_gen(DUALQ* self);
+int dualq_gen(DUALQ* self);
 void dualq_put(DUALQ* self, packet* p);
 int dualq_update(DUALQ* self);

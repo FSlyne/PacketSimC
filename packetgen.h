@@ -13,11 +13,12 @@ typedef struct {
     int source;
     int dest;
     int flow_id;
-    void (* out)(void* , int);
+    void (* out )(void* , packet*);
     void *typex;
     int (*arrivalfn)();
     void *arrivalfntype;
 } PKT;
+
 
 typedef struct {
     int status;

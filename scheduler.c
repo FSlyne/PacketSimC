@@ -4,7 +4,7 @@
 #include <math.h>
 #include "scheduler.h"
 
-void sched_insert(struct sbuffer **st, struct sbuffer **en,  void* typex, void (*func_ptr)(), int key, int oneoff)
+void sched_insert(struct sbuffer **st, struct sbuffer **en,  void* typex, int (*func_ptr)(), int key, int oneoff)
 {
     struct sbuffer *newnode;
     struct sbuffer *idx, *tmp;
@@ -48,7 +48,7 @@ void sched_insert(struct sbuffer **st, struct sbuffer **en,  void* typex, void (
     return;
 }
 
-void sched_rpush(struct sbuffer **st, struct sbuffer **en,  void* typex, void (*func_ptr)(), int key, int oneoff)
+void sched_rpush(struct sbuffer **st, struct sbuffer **en,  void* typex, int (*func_ptr)(), int key, int oneoff)
 {
     struct sbuffer *newnode;
     newnode = (struct sbuffer *)malloc(sizeof(struct sbuffer));
@@ -74,7 +74,7 @@ void sched_rpush(struct sbuffer **st, struct sbuffer **en,  void* typex, void (*
  
 }
 
-void sched_lpush(struct sbuffer **st, struct sbuffer **en,  void* typex, void (*func_ptr)(), int key, int oneoff)
+void sched_lpush(struct sbuffer **st, struct sbuffer **en,  void* typex, int (*func_ptr)(), int key, int oneoff)
 {
     struct sbuffer *newnode;
     newnode = (struct sbuffer *)malloc(sizeof(struct sbuffer));
@@ -182,12 +182,12 @@ SCHED* sched_create(int finish){
 }
 
 // https://codeforwin.org/2017/12/pass-function-pointer-as-parameter-another-function-c.html
-void sched_reg(SCHED* self, void *typex, int (*func_ptr()), int key){
+void sched_reg(SCHED* self, void *typex, int (func_ptr()), int key){
    // key is given in seconds when called externally, so needs to be converted to microseconds
    sched_insert(&(self->st),&(self->en), typex, func_ptr, key ,0);
 }
 
-void sched_reg_oneoff(SCHED* self, void *typex, int (*func_ptr()), int key){
+void sched_reg_oneoff(SCHED* self, void *typex, int (func_ptr()), int key){
    // key is given in seconds when called externally, so needs to be converted to microseconds
    sched_insert(&(self->st),&(self->en), typex, func_ptr, key ,1);
 }
