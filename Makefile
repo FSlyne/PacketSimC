@@ -8,7 +8,7 @@ DEPS=
 all: packetsim 
 
 packetsim: packetsim.c $(DEPS)
-	$(CC) $(CFLAGS) packetsim.c scheduler.c pbuffer.c dba.c aqm.c queue.c packet.c packetgen.c $(LDFLAGS) -o packetsim
+	$(CC) $(CFLAGS) packetsim.c scheduler.c pbuffer.c dba.c aqm.c queue.c packet.c packetgen.c lock.c $(LDFLAGS) -o packetsim
 
 clean:
 	rm packetsim

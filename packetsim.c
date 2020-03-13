@@ -9,6 +9,14 @@
 #include "dba.h"
 #include "aqm.h"
 
+/* 
+ * A lightweight Discrete Event Simulator developed in C
+ * Copyright 2020 Frank Slyne, Marco Ruffini. Trinity College Dublin.
+ * Released under MIT licence.
+ *
+ * To Do: FSM, Locks
+ */
+
 
 int main() {
    

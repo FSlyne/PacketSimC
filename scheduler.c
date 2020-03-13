@@ -4,6 +4,13 @@
 #include <math.h>
 #include "scheduler.h"
 
+/* 
+ * A lightweight Discrete Event Simulator developed in C
+ * Copyright 2020 Frank Slyne, Marco Ruffini. Trinity College Dublin.
+ * Released under MIT licence.
+ */
+
+
 void sched_insert(struct sbuffer **st, struct sbuffer **en,  void* typex, int (*func_ptr)(), int key, int oneoff)
 {
     struct sbuffer *newnode;

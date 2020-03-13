@@ -2,6 +2,13 @@
 #include <stdio.h>
 #include "pbuffer.h"
 
+/* 
+ * A lightweight Discrete Event Simulator developed in C
+ * Copyright 2020 Frank Slyne, Marco Ruffini. Trinity College Dublin.
+ * Released under MIT licence.
+ */
+
+
 //void queue_get(QUEUE* self, packet* p){
 //   int key;
 //   queue_rpop(&self->st, &self->en, p, &key);

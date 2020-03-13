@@ -2,6 +2,12 @@
 #include <stdio.h>
 #include "queue.h"
 
+/* 
+ * A lightweight Discrete Event Simulator developed in C
+ * Copyright 2020 Frank Slyne, Marco Ruffini. Trinity College Dublin.
+ * Released under MIT licence.
+ */
+
 
 void queue_insert(struct pbuffer **st, struct pbuffer **en,  packet* p, int key)
 {

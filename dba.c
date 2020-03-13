@@ -2,6 +2,13 @@
 #include <stdio.h>
 #include "dba.h"
 
+/* 
+ * A lightweight Discrete Event Simulator developed in C
+ * Copyright 2020 Frank Slyne, Marco Ruffini. Trinity College Dublin.
+ * Released under MIT licence.
+ */
+
+
 void frame_insert(struct fbuffer **st, struct fbuffer **en, struct pbuffer *tlist_st, struct pbuffer *tlist_en, int grant_start, int grant_size)
 {
     struct fbuffer *newnode;
