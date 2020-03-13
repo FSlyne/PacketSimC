@@ -65,7 +65,8 @@ int  pkt_gen(PKT* self) {
 }
 
 void pkt_stats(PKT* self) {
-   printf("TX - packets: %d\n", self->pktcnt);
+   printf("Flow %d Packet Count %d Mean Packet Size %d Line Rate %d bps\n",
+          self->flow_id, self->pktcnt, ((DIST*) self->arrivalfntype)->mean_pkt_size, ((DIST*) self->arrivalfntype)->linerate);
 }
 
 void sink_init(SINK* self, SCHED* sched) {
@@ -99,8 +100,10 @@ void sink_put(SINK* self, packet *p) {
 
 void sink_stats(SINK* self) {
    int i;
+   printf("\n\nReceived Statistics\n");
+   printf("Flows\tPackets\tbits/sec\tlatency(usec)\n");
    for (i=0; i<10; i++) {
       int n = (self->pkt_rcvd[i]>0) ? self->pkt_rcvd[i] : 1;
-      printf("flow: %d\t - %ld\t%ld\t%ld\n", i, self->pkt_rcvd[i], self->bytes_rcvd[i]*8/(self->sched->finish), self->delay_cumul[i]/n);
+      printf("%d\t%ld\t%ld\t%ld\n", i, self->pkt_rcvd[i], self->bytes_rcvd[i]*8/(self->sched->finish), self->delay_cumul[i]/n);
    }
 }

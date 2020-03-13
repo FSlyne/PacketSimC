@@ -5,6 +5,7 @@
 typedef struct {
    int id;
    int create_time;  // time at which packet was created
+   int enqueue_time;
    int source;
    int dest;
    int size;

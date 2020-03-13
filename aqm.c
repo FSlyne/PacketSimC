@@ -37,6 +37,7 @@ double rand_0_1(void)
     return rand() / ((double) RAND_MAX);
 }
 
+// WRED AQM
 
 void wred_init(WRED* self, SCHED* sched){
    self->sched=sched;
@@ -60,15 +61,93 @@ void wred_destroy(WRED* obj){
 void wred_put(WRED* self, packet* p) {
    if (p->flow_id == 1) {
       if (wred_drop(5,20,8,self->queue->countsize) == 0) { // Drop if wred_drop returns 1
+         p->enqueue_time=self->sched->now;
          queue_put(self->queue, p);
       } else {
          printf("WRED: Packet Drop flow ID %d\n", p->flow_id);
          free(p); // Check this !!!!
       }
    } else {
+      p->enqueue_time=self->sched->now;
       queue_put(self->queue, p);
    }
 }
+
+// PIE
+// https://www.scss.tcd.ie/publications/theses/diss/2017/TCD-SCSS-DISSERTATION-2017-046.pdf
+
+void pie_init(PIE* self, SCHED* sched, int linerate, int countlimit, int bytelimit) {
+   self->sched=sched;
+   self->linerate=linerate;
+   self->countlimit = countlimit;
+   self->bytelimit = bytelimit;
+   self->target=15900; // us, PI AQM Classic queue delay targets
+   self->tupdate=16000; // us, PI Classic queue sampling interval
+   self->alpha=10.0; // Hz^2, PI integral gain
+   self->beta=100.0; // Hz^2, PI proportional gain
+   self->p=0;
+   self->cqdelay=0;
+   self->pqdelay=0;
+   self->myclock=0;
+}
+
+PIE* pie_create(SCHED* sched, int linerate, int countlimit, int bytelimit){
+    srand((unsigned) time(NULL));
+    PIE* obj=(PIE*) malloc(sizeof(PIE));
+    pie_init(obj, sched, linerate, countlimit, bytelimit);
+    return obj;
+}
+
+int pie_update(PIE* self) {
+   self->p = (self->alpha*(self->cqdelay - self->target) + self->beta *(self->cqdelay - self->pqdelay))/1000000;
+   printf("%f\t%d\t%d\t%d\t%d\t%d\n", self->p,self->alpha,self->beta,self->target, self->cqdelay, self->pqdelay);
+   self->pqdelay=self->cqdelay;
+   return self->sched->now+self->tupdate; // in milliseconds
+}
+
+int pie_gen(PIE* self) {
+   int key;
+   packet* p;
+   queue_rpop(&(self->st), &(self->en), &p, &key);
+   self->cqdelay=self->sched->now - p->enqueue_time;
+   self->countsize--;
+   self->bytesize-=p->size;
+   self->out(self->typex, p);
+   return self->sched->now;
+}
+
+void pie_put(PIE* self, packet* p) {
+   if (self->countlimit>0) {
+      if (self->countsize >= self->countlimit) {
+         printf("PIE Dropping packet - count limit\n");
+         packet_destroy(p);
+         return;
+      }
+    }
+    if (self->bytelimit>0) {
+      if (self->bytesize >= self->bytelimit) {
+         printf("PIE Dropping packet - byte limit\n");
+         packet_destroy(p);
+         return;
+      } 
+    }
+   float n = rand_0_1();
+   if (self->p > n) {
+      //printf("PIE Dropping packet - AQM limit\n");
+      packet_destroy(p);
+      return;
+   }
+   self->countsize++;
+   self->bytesize+=p->size;
+   int interval=p->size*8/self->linerate;
+   self->myclock=(self->myclock>self->sched->now)?self->myclock:self->sched->now;
+   self->myclock+=interval; // microseconds
+   sched_reg_oneoff(self->sched, self, pie_gen, self->myclock);
+   queue_insert(&self->st,&self->en,p, 0); // 0 => higher priority, on left of queue
+   p->enqueue_time=self->sched->now;
+}
+
+//  DUALQ AQM
 
 void dualq_init(DUALQ* self, SCHED* sched, int linerate, int countlimit, int bytelimit){
    self->sched=sched;
@@ -178,6 +257,7 @@ void dualq_put(DUALQ* self, packet* p) {
       int interval=p->size*8/self->linerate;
       sched_reg_oneoff(self->sched, self, dualq_gen, self->sched->now+interval);
       queue_insert(&self->st,&self->en,p, 0); // 0 => higher priority, on left of queue
+      p->enqueue_time=self->sched->now;
       return;
    } else {// 1 => lesser priority
       self->packets_LPrec++;
@@ -193,6 +273,7 @@ void dualq_put(DUALQ* self, packet* p) {
          int interval=p->size*8/self->linerate;
          sched_reg_oneoff(self->sched, self, dualq_gen, self->sched->now+interval);
          queue_insert(&self->st,&self->en,p, 1); // 1 => lesser priority, on left of queue
+         p->enqueue_time=self->sched->now;
       }
    }
 }

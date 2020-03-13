@@ -207,6 +207,7 @@ void tcont_put(TCONT* self, packet* p){
     }
     self->countsize++;
     self->bytesize+=p->size;
+    p->enqueue_time=self->sched->now;
     queue_insert(&self->st,&self->en,p, 0);
 }
 
@@ -235,7 +236,7 @@ int dba_gen(DBA* self) {
     en_r=(struct pbuffer *) NULL;
     packet* p;
     // Create the frame
-    tcont_control(self->tcont,200, &st_w, &en_w);
+    tcont_control(self->tcont,200, &st_w, &en_w); // a single TCONT
     frame_lpush(&(self->st_frame), &(self->en_frame), st_w, en_w, 1, 100);
     //
     // Read the frame

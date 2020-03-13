@@ -12,6 +12,27 @@ typedef struct {
    void *typex;
    void (* out)(void* , packet*);
    struct pbuffer *st;
+   struct pbuffer *en;
+   int linerate;
+   int countlimit;
+   int bytelimit;
+   int countsize;
+   int bytesize;
+   int target;
+   int tupdate;
+   int alpha;
+   int beta;
+   float p;
+   int cqdelay;
+   int pqdelay;
+   int myclock;
+} PIE;
+
+typedef struct {
+   SCHED* sched;
+   void *typex;
+   void (* out)(void* , packet*);
+   struct pbuffer *st;
    struct pbuffer *en;  
    int linerate;
    int packets_rec;
@@ -62,6 +83,11 @@ typedef struct {
 } DUALQ;
 
 
+void pie_init(PIE* self, SCHED* sched, int linerate, int countlimit, int bytelimit);
+PIE* pie_create(SCHED* sched, int linerate, int countlimit, int bytelimit);
+int pie_update(PIE* self);
+int pie_gen(PIE* self);
+void pie_put(PIE* self, packet* p);
 void wred_init(WRED* self, SCHED* sched);
 WRED* wred_create(SCHED* sched, int linerate);
 void wred_destroy(WRED* obj);

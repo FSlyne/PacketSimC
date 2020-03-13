@@ -221,6 +221,7 @@ void queue_put(QUEUE* self, packet* p){
     self->countsize++;
     self->bytesize+=p->size;
     queue_insert(&self->st,&self->en,p, 0);
+    p->enqueue_time=self->sched->now;
     int interval=p->size*8/self->linerate;
     self->myclock=(self->myclock>self->sched->now)?self->myclock:self->sched->now;
     self->myclock+=interval; // microseconds
