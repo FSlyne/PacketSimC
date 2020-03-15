@@ -11,16 +11,15 @@
  */
 
 
-void sched_insert(struct sbuffer **st, struct sbuffer **en,  void* typex, int (*func_ptr)(), int key, int oneoff)
+void sched_insert(struct sbuffer **st, struct sbuffer **en,  jmp_buf flag, int key )
 {
     struct sbuffer *newnode;
     struct sbuffer *idx, *tmp;
 
     newnode = (struct sbuffer *)malloc(sizeof(struct sbuffer));
-    newnode->func_ptr=func_ptr;
-    newnode->typex=typex;
     newnode->key=key;
-    newnode->oneoff=oneoff;
+    // https://www.linuxquestions.org/questions/programming-9/objects-and-assignment-in-interpreter-861721/page6.html
+    memcpy(newnode->flag, flag, sizeof(jmp_buf));
     
     if (*st == NULL && *en == NULL) { // zero nodes in list, insert new node
         newnode->next=NULL;
@@ -55,14 +54,12 @@ void sched_insert(struct sbuffer **st, struct sbuffer **en,  void* typex, int (*
     return;
 }
 
-void sched_rpush(struct sbuffer **st, struct sbuffer **en,  void* typex, int (*func_ptr)(), int key, int oneoff)
+void sched_rpush(struct sbuffer **st, struct sbuffer **en,  jmp_buf flag, int key )
 {
     struct sbuffer *newnode;
     newnode = (struct sbuffer *)malloc(sizeof(struct sbuffer));
-    newnode->func_ptr=func_ptr;
-    newnode->typex=typex;
     newnode->key=key;
-    newnode->oneoff=oneoff;
+    memcpy(newnode->flag, flag, sizeof(jmp_buf));
  
     if (*en == NULL)
         {
@@ -81,14 +78,12 @@ void sched_rpush(struct sbuffer **st, struct sbuffer **en,  void* typex, int (*f
  
 }
 
-void sched_lpush(struct sbuffer **st, struct sbuffer **en,  void* typex, int (*func_ptr)(), int key, int oneoff)
+void sched_lpush(struct sbuffer **st, struct sbuffer **en,  jmp_buf flag, int key )
 {
     struct sbuffer *newnode;
     newnode = (struct sbuffer *)malloc(sizeof(struct sbuffer));
-    newnode->func_ptr=func_ptr;
-    newnode->typex=typex;
     newnode->key=key;
-    newnode->oneoff=oneoff;
+    memcpy(newnode->flag, flag, sizeof(jmp_buf));
  
     if (*en == NULL)
         {
@@ -108,7 +103,7 @@ void sched_lpush(struct sbuffer **st, struct sbuffer **en,  void* typex, int (*f
 }
 
 
-void sched_rpop(struct sbuffer **st, struct sbuffer **en,  void **typex, int (**func_ptr)(), int *key, int *oneoff)
+void sched_rpop(struct sbuffer **st, struct sbuffer **en,  jmp_buf *flag, int *key)
 {
     struct sbuffer *top;
 
@@ -125,10 +120,8 @@ void sched_rpop(struct sbuffer **st, struct sbuffer **en,  void **typex, int (**
     //    }
            
     top = *en;
-    *func_ptr=top->func_ptr;
-    *typex=top->typex;
     *key=top->key;
-    *oneoff=top->oneoff;
+    memcpy(*flag, top->flag, sizeof(jmp_buf));
     if (*st == *en) {
         *st = NULL;
         *en = NULL;
@@ -180,6 +173,7 @@ void sched_init(SCHED* self, int finish){
     self->finish=finish;
     self->st=(struct sbuffer *) NULL;
     self->en=(struct sbuffer *) NULL;
+    self->init=0;
 }
 
 SCHED* sched_create(int finish){
@@ -188,41 +182,56 @@ SCHED* sched_create(int finish){
     return obj;
 }
 
+
+
 // https://codeforwin.org/2017/12/pass-function-pointer-as-parameter-another-function-c.html
-void sched_reg(SCHED* self, void *typex, int (func_ptr()), int key){
+void sched_reg(SCHED* self, void *typex, void (func_ptr()), int then, int n){
+   self->typex[n]=typex;
+   self->func_ptr[n]=func_ptr;
+   self->then[n]=then;
    // key is given in seconds when called externally, so needs to be converted to microseconds
-   sched_insert(&(self->st),&(self->en), typex, func_ptr, key ,0);
+   // sched_insert(&(self->st),&(self->en), typex, func_ptr, then ,0);
 }
 
-void sched_reg_oneoff(SCHED* self, void *typex, int (func_ptr()), int key){
-   // key is given in seconds when called externally, so needs to be converted to microseconds
-   sched_insert(&(self->st),&(self->en), typex, func_ptr, key ,1);
+//void sched_reg_oneoff(SCHED* self, void *typex, int (func_ptr()), int then){
+//   // key is given in seconds when called externally, so needs to be converted to microseconds
+//   sched_insert(&(self->st),&(self->en), typex, func_ptr, then ,1);
+//}
+
+void sched_yield(SCHED* self, jmp_buf flag, int then) {
+   sched_insert(&(self->st),&(self->en), flag, then);
+   if (self->init == 0) {
+      (self->func_ptr[1])(self->typex[1]);
+      self->init = 1;
+   }
+   int now;
+   jmp_buf flag2;
+   while (self->st != NULL) {
+      sched_rpop(&(self->st), &(self->en), &flag2, &now);
+      self->now=now;
+      longjmp(flag2,1);
+   } 
 }
 
 void sched_run(SCHED* self) {
-    int now, then, oneoff;
-    void *typex;
-    int (*func_ptr)();
-    while (self->now <= self->finish*pow(10,6)) {
-        sched_rpop(&(self->st), &(self->en), &typex, &func_ptr, &now, &oneoff);
-        if (func_ptr==NULL) {
-            continue;
-        }
-        self->now=(now>self->now)?now:self->now;
-        then=(*func_ptr)(typex);
-        // printf(">%d %d\n", now, then);      
-        if (self->now == 0) {
-            printf("Simulation Clock zero limit\n");
-        }
-        //self->now=now;
-        if (oneoff == 0) {
-           sched_insert(&(self->st),&(self->en), typex, func_ptr, then, 0);
-         }
-//         sched_count(&(self->st), &(self->en));
-    }
-    printf("Finished !!\n");
-    return;
+   (self->func_ptr[0])(self->typex[0]);
 }
+
+//void sched_run(SCHED* self) {
+//    int now;
+//    while (self->now <= self->finish*pow(10,6)) {
+//        jmp_buf flag;
+//        sched_rpop(&(self->st), &(self->en), &flag, &now);
+//        if  (flag == NULL) continue;
+//        longjmp(flag,1);
+//        self->now=now;     
+//        if (self->now == 0) {
+//            printf("Simulation Clock zero limit\n");
+//        }
+//    }
+//    printf("Finished !!\n");
+//    return;
+//}
 
 
 

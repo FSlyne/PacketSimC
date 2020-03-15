@@ -23,6 +23,8 @@ void wrpop(struct wbuffer **st, struct wbuffer **en,  void** typex, void (**func
 void winsert(struct wbuffer **st, struct wbuffer **en,  void* typex, void (*func_ptr)(), int key);
 void wrpush(struct wbuffer **st, struct wbuffer **en,  void* typex, void (*func_ptr)(), int key);
 void wlpush(struct wbuffer **st, struct wbuffer **en,  void* typex, void (*func_ptr)(), int key);
+LOCK* lock_create();
+void lock_init(LOCK* self);
 void set_lock(LOCK* lock, void *typex, void (func_ptr()), int key);
 void unset_lock(LOCK* lock, int key);
 

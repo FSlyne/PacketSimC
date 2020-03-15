@@ -8,19 +8,20 @@
 #include "pbuffer.h"
 #include "dba.h"
 #include "aqm.h"
+#include "message.h"
 
 /* 
  * A lightweight Discrete Event Simulator developed in C
  * Copyright 2020 Frank Slyne, Marco Ruffini. Trinity College Dublin.
  * Released under MIT licence.
  *
- * To Do: FSM, Locks
+ * To Do: FSM
  */
 
 
 int main() {
    
-    int scenario = 3;
+    int scenario = 8;
     if (scenario == 1) { // Single queue. PKT+DIST -> QUEUE-> SINK
          SCHED* sched=sched_create(10); // seconds
          PKT* pkt1=pkt_create(sched,1,3, 1); // from, to, flow_id
@@ -155,6 +156,21 @@ int main() {
          
          pkt_stats(pkt1);
          sink_stats(sink);      
+    } else if (scenario == 8) { // (PKT+DIST)  -> PIE  -> SINK 
+         SCHED* sched=sched_create(10); // seconds
+         
+         CHAN* AB=channel_create(sched, 1);
+         CHAN* BC=channel_create(sched, 2);
+         CHAN* CA=channel_create(sched, 3);
+         
+         AB->out=(void *)channel_read; AB->typex=BC;
+         BC->out=(void *)channel_read; BC->typex=CA;
+         CA->out=(void *)channel_read; CA->typex=AB;
+         
+         channel_read(AB, 12);
+ 
+         sched_run(sched);
+   
     }
 
 }

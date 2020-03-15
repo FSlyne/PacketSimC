@@ -4,6 +4,15 @@
 #include <string.h>
 #include "lock.h"
 
+/* 
+ * A lightweight Discrete Event Simulator developed in C
+ * Copyright 2020 Frank Slyne, Marco Ruffini. Trinity College Dublin.
+ * Released under MIT licence.
+ *
+ * To Do: Channel, FSM
+ */
+
+
 int wexist(struct wbuffer **st, struct wbuffer **en, int key) {
     struct wbuffer *idx;
     idx=*st;
@@ -220,7 +229,7 @@ void lock_init(LOCK* self){
     self->en=(struct wbuffer *) NULL;
 }
 
-LOCK* lock_create(int finish){
+LOCK* lock_create(){
     LOCK* obj=(LOCK*) malloc(sizeof(LOCK));
     lock_init(obj);
     return obj;
