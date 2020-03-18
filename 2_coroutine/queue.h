@@ -1,5 +1,6 @@
 #include "packet.h"
 #include "scheduler.h"
+#include "store.h"
 
 #ifndef QUEUE_H
 #define QUEUE_H
@@ -14,6 +15,7 @@ typedef struct {
     int bytelimit;
     int myclock;
     SCHED* sched;
+    STORE* store;
     void (* out)(void* , packet*);
     void *typex;
     struct pbuffer *st;
@@ -21,15 +23,10 @@ typedef struct {
 } QUEUE;
 
 
-void queue_init(QUEUE* self, SCHED* sched, int linerate, int countlimit, int bytelimit, int latency);
+void queue_init(QUEUE* self, SCHED* sched, STORE* store, int linerate, int countlimit, int bytelimit, int latency);
 QUEUE* queue_create(SCHED* sched, int linerate, int countlimit, int bytelimit, int latency);
-void queue_count(struct pbuffer **st, struct pbuffer **en);
-void queue_insert(struct pbuffer **st, struct pbuffer **en,  packet* p, int key);
-void queue_lpush(struct pbuffer **st, struct pbuffer **en,  packet* p, int key);
-void queue_rpop(struct pbuffer **st, struct pbuffer **en,  packet **p, int *key);
-void queue_clear(struct pbuffer **st, struct pbuffer **en);
 void queue_destroy(QUEUE* obj);
 void queue_put(QUEUE* self, packet* p);
-void queue_get(QUEUE* self, packet* p);
+void  queue_gen(QUEUE* self) ;
 
 #endif // QUEUE_H

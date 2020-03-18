@@ -51,24 +51,26 @@ PKT* pkt_create(SCHED* sched, int source, int dest, int flow_id) {
 }
 
 void  pkt_gen(PKT* self) {
-   int stackspace[2000] ; stackspace[3]=45;
+   int stackspace[200000] ; stackspace[3]=45;
+   int delay;
     if (self->status == 0) { // first time pkt_get is run
         self->status = 1;
         self->pktcnt=0;
     }
     jmp_buf flag;
-    while (self->sched->now <= self->sched->finish*pow(10,6)) {
-         // preprocess 
+    while (self->sched->now <= self->sched->finish*1000000) {
+         // preprocess
+         //printf("Creating a packet\n");
          packet* p=packet_create((self->pktcnt)++, self->sched->now, self->source, self->dest,self->flow_id,
                                  ((DIST*) self->arrivalfntype)->mean_pkt_size);
          // postprocess
          // Need to replicate self.out.put(p) functionality
-         int delay=self->sched->now+self->arrivalfn(self->arrivalfntype);
-         if (setjmp(flag) == 0) {
-            printf("%ld set jmp to scheduler %d\n", self->sched->now, self->flow_id);
+         delay=self->sched->now+self->arrivalfn(self->arrivalfntype);
+         if ( setjmp(flag) == 0) {
+            //printf("%ld set jmp to scheduler %d\n", self->sched->now, self->flow_id);
             sched_yield(self->sched, flag, delay);
          } else {
-            printf("%ld returning from scheduler %d\n", self->sched->now, self->flow_id);
+            //printf("%ld returning from scheduler %d\n", self->sched->now, self->flow_id);
             self->out(self->typex, p);
          }
     }

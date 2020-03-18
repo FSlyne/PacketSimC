@@ -1,18 +1,29 @@
 #include "scheduler.h"
 #include "packet.h"
-#include "queue.h"
+#include "store.h"
 
 typedef struct {
-   SCHED* sched;
-   QUEUE* queue;
+    int status;
+    int linerate;
+    int latency;
+    int bytesize;
+    int countsize;
+    int countlimit;
+    int bytelimit;
+    int myclock;
+    SCHED* sched;
+    STORE* store;
+    void (* out)(void* , packet*);
+    void *typex;
+    struct pbuffer *st;
+    struct pbuffer *en;   
 } WRED;
 
 typedef struct {
    SCHED* sched;
+   STORE* store;
    void *typex;
    void (* out)(void* , packet*);
-   struct pbuffer *st;
-   struct pbuffer *en;
    int linerate;
    int countlimit;
    int bytelimit;
@@ -20,6 +31,7 @@ typedef struct {
    int bytesize;
    int target;
    int tupdate;
+   int tupdate_last;
    int alpha;
    int beta;
    float p;
@@ -30,10 +42,9 @@ typedef struct {
 
 typedef struct {
    SCHED* sched;
+   STORE* store;
    void *typex;
    void (* out)(void* , packet*);
-   struct pbuffer *st;
-   struct pbuffer *en;  
    int linerate;
    int packets_rec;
    int packets_drop;
@@ -54,6 +65,7 @@ typedef struct {
    int MIN_LINK_RATE;
    int target; // ms, PI AQM Classic queue delay targets
    int tupdate; // ms, PI Classic queue sampling interval
+   int tupdate_last;
    int alpha; // Hz^2, PI integral gain
    int beta; // Hz^2, PI proportional gain
    int p_Cmax;
@@ -83,18 +95,18 @@ typedef struct {
 } DUALQ;
 
 
-void pie_init(PIE* self, SCHED* sched, int linerate, int countlimit, int bytelimit);
+void pie_init(PIE* self, SCHED* sched, STORE* store, int linerate, int countlimit, int bytelimit);
 PIE* pie_create(SCHED* sched, int linerate, int countlimit, int bytelimit);
-int pie_update(PIE* self);
-int pie_gen(PIE* self);
+void pie_gen(PIE* self);
 void pie_put(PIE* self, packet* p);
-void wred_init(WRED* self, SCHED* sched);
-WRED* wred_create(SCHED* sched, int linerate);
-void wred_destroy(WRED* obj);
+void wred_init(WRED* self, SCHED* sched, STORE* store, int linerate, int countlimit, int bytelimit, int latency);
+WRED* wred_create(SCHED* sched, int linerate, int countlimit, int bytelimit, int latency);
+void wred_destroy(WRED* self);
+void  wred_gen(WRED* self);
 void wred_put(WRED* self, packet* p);
-void dualq_init(DUALQ* self, SCHED* sched, int linerate, int countlimit, int bytelimit);
+void dualq_init(DUALQ* self, SCHED* sched, STORE* store, int linerate, int countlimit, int bytelimit);
 DUALQ* dualq_create(SCHED* sched, int linerate, int countlimit, int bytelimit);
 int dualq_laqm(DUALQ* self);
-int dualq_gen(DUALQ* self);
+void dualq_gen(DUALQ* self);
 void dualq_put(DUALQ* self, packet* p);
 int dualq_update(DUALQ* self);

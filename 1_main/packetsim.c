@@ -21,7 +21,7 @@
 
 int main() {
    
-    int scenario = 8;
+    int scenario = 1;
     if (scenario == 1) { // Single queue. PKT+DIST -> QUEUE-> SINK
          SCHED* sched=sched_create(10); // seconds
          PKT* pkt1=pkt_create(sched,1,3, 1); // from, to, flow_id

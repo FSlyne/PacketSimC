@@ -1,18 +1,13 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include "queue.h"
+#include "store.h"
 
-/* 
- * A lightweight Discrete Event Simulator developed in C
- * Copyright 2020 Frank Slyne, Marco Ruffini. Trinity College Dublin.
- * Released under MIT licence.
- */
-
-
-void queue_insert(struct pbuffer **st, struct pbuffer **en,  packet* p, int key)
+void store_insert(struct pbuffer **st, struct pbuffer **en,  packet* p, int key)
 {
     struct pbuffer *newnode;
     struct pbuffer *idx, *tmp;
+    
+    //store_count(1, st,en);
 
     newnode = (struct pbuffer *)malloc(sizeof(struct pbuffer));
     newnode->p=p;
@@ -51,7 +46,7 @@ void queue_insert(struct pbuffer **st, struct pbuffer **en,  packet* p, int key)
     return;
 }
 
-void queue_lpush(struct pbuffer **st, struct pbuffer **en,  packet* p, int key)
+void store_lpush(struct pbuffer **st, struct pbuffer **en,  packet* p, int key)
 {
     struct pbuffer *newnode;
 
@@ -75,8 +70,10 @@ void queue_lpush(struct pbuffer **st, struct pbuffer **en,  packet* p, int key)
 }
 
 
-void queue_rpop(struct pbuffer **st, struct pbuffer **en,  packet **p, int *key)
+void store_rpop(struct pbuffer **st, struct pbuffer **en,  packet **p, int *key)
 {
+   
+    //store_count(2, st,en);
     struct pbuffer *top;
 
     if (*st == NULL && *en == NULL)
@@ -109,7 +106,7 @@ void queue_rpop(struct pbuffer **st, struct pbuffer **en,  packet **p, int *key)
  
 }
 
-void queue_read(struct pbuffer **en,  packet **p, int *key)
+void store_read(struct pbuffer **en,  packet **p, int *key)
 {
     struct pbuffer *top;
 
@@ -132,7 +129,7 @@ void queue_read(struct pbuffer **en,  packet **p, int *key)
 }
 
 
-void queue_clear(struct pbuffer **st, struct pbuffer **en)
+void store_clear(struct pbuffer **st, struct pbuffer **en)
 {
     struct pbuffer *top;
     
@@ -150,33 +147,7 @@ void queue_clear(struct pbuffer **st, struct pbuffer **en)
     }
 }
 
-
-void queue_init(QUEUE* self, SCHED* sched, int linerate, int countlimit, int bytelimit, int latency){
-    self->st=(struct pbuffer *) NULL;
-    self->en=(struct pbuffer *) NULL;
-    self->sched=sched;
-    self->bytesize=0;
-    self->countsize=0;
-    self->linerate=linerate;
-    self->countlimit=countlimit;
-    self->bytelimit=bytelimit;
-    self->latency=latency;
-    self->myclock=0;
-}
-
-QUEUE* queue_create(SCHED* sched, int linerate, int countlimit, int bytelimit, int latency){
-    QUEUE* obj=(QUEUE*) malloc(sizeof(QUEUE));
-    queue_init(obj, sched, linerate, countlimit, bytelimit, latency);
-    return obj;
-}
-
-void queue_destroy(QUEUE* obj){
-    if (obj) {
-        free(obj);
-    }
-}
-
-void queue_count(struct pbuffer **st, struct pbuffer **en)
+void store_count(int id, struct pbuffer **st, struct pbuffer **en)
 {
     struct pbuffer *idx;
     int count=0;
@@ -186,51 +157,45 @@ void queue_count(struct pbuffer **st, struct pbuffer **en)
         idx = idx->next;
         count++;
     }
-    printf("Queue Nodes: %d ", count);
+    printf("Queue Nodes: %d %d\n", id, count);
 }
 
-
-int  queue_gen(QUEUE* self) {
-    if (self->status == 0) { // first time queue_gen  is run
-        self->status = 1;
-    }
-    // preprocess
-    int key;
-//    packet* p=packet_create_noinit();
-    packet* p;
-//    queue_count(&(self->st), &(self->en));
-    queue_rpop(&(self->st), &(self->en), &p, &key);
-    self->countsize--;
-    self->bytesize-=p->size;
-    // postprocess
-    // Need to replicate self.out.put(p) functionality
-    self->out(self->typex, p);
-    return self->sched->now;
+void store_init(STORE* self, SCHED* sched){
+    self->st=(struct pbuffer *) NULL;
+    self->en=(struct pbuffer *) NULL;
+    self->sched=sched;
+    self->depleted=0;
 }
 
-void queue_put(QUEUE* self, packet* p){
-   //printf("Queue size %d %d\n", self->countsize, self->bytesize);
-   if (self->countlimit>0) {
-      if (self->countsize >= self->countlimit) {
-         printf("QUEUE Dropping packet - count limit\n");
-         packet_destroy(p);
-         return;
-      }
-    }
-    if (self->bytelimit>0) {
-      if (self->bytesize >= self->bytelimit) {
-         printf("QUEUE Dropping packet - byte limit\n");
-         packet_destroy(p);
-         return;
-      } 
-    }
-    self->countsize++;
-    self->bytesize+=p->size;
-    p->enqueue_time=self->sched->now;
-    queue_insert(&self->st,&self->en,p, 0);
-    int interval=p->size*8/self->linerate;
-    self->myclock=(self->myclock>self->sched->now)?self->myclock:self->sched->now;
-    self->myclock+=interval; // microseconds
-   //printf("QSched: %d %d %d %d\n", self->sched->now, then, p->size, self->linerate);
-    sched_reg_oneoff(self->sched, self, queue_gen, self->myclock+self->latency);
+STORE* store_create(SCHED* sched){
+    STORE* obj=(STORE*) malloc(sizeof(STORE));
+    store_init(obj, sched);
+    return obj;
 }
+
+void store_destroy(STORE* obj){
+    if (obj) {
+        free(obj);
+    }
+}
+
+void store_yield(STORE* self, jmp_buf flag) {
+   if (self->st != NULL) {
+      self->depleted=0;
+      longjmp(flag,1); // store is not empty, return immediately
+   }  
+   //
+   self->depleted=1;
+   memcpy(self->flag, flag, sizeof(jmp_buf)); // save flag for later
+   // 
+   //int now;
+   //jmp_buf flag2;
+   //if (self->sched->st != NULL) { // find some event in the time domain to proceed
+   //   sched_rpop(&(self->sched->st), &(self->sched->en), &flag2, &now);
+   //   self->sched->now=now;
+   //   longjmp(flag2,1);
+   //}
+   //printf("store_yield: exhaustion\n");
+   longjmp(flag,1);  // ??????
+}
+

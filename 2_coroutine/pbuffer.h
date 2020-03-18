@@ -1,6 +1,9 @@
 #include "scheduler.h"
 #include "packet.h"
 
+#ifndef PBUFFER_H
+#define PBUFFER_H
+
 typedef struct {   
     int status;
     SCHED* sched;
@@ -28,3 +31,5 @@ void trtcm_init(TRTCM* self, SCHED* sched, int pir, int pbs, int cir, int cbs);
 TRTCM* trtcm_create(SCHED* sched, int pir, int pbs, int cir, int cbs);
 void trtcm_destroy(TRTCM* obj);
 void trtcm_put(TRTCM* self, packet* p);
+
+#endif // PBUFFER_H

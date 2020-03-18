@@ -11,6 +11,59 @@
  */
 
 
+void task_lpush(struct tbuffer **st, struct tbuffer **en,  void* typex, int (*func_ptr)())
+{
+    struct tbuffer *newnode;
+    newnode = (struct tbuffer *)malloc(sizeof(struct tbuffer));
+    newnode->func_ptr=func_ptr;
+    newnode->typex=typex;
+ 
+    if (*en == NULL)
+        {
+        newnode->next = NULL;
+        newnode->prev = NULL;
+        *st=newnode;
+        *en=newnode;
+        return;
+        }
+ 
+    newnode->next = *st;
+    (*st)->prev = newnode;
+    *st = newnode;
+    newnode->prev = NULL;
+    return ;
+ 
+}
+
+
+void task_rpop(struct tbuffer **st, struct tbuffer **en,  void **typex, int (**func_ptr)())
+{
+    struct tbuffer *top;
+
+    if (*st == NULL && *en == NULL)
+        {
+        //printf("The Scheduler stack is empty!\n");
+        return;
+        }
+           
+    top = *en;
+    *func_ptr=top->func_ptr;
+    *typex=top->typex;
+    if (*st == *en) {
+        *st = NULL;
+        *en = NULL;
+        free(top);
+        return;
+    }
+
+    *en = (*en)->prev;
+    (*en)->next=NULL;
+    free(top);
+    return;
+ 
+}
+
+
 void sched_insert(struct sbuffer **st, struct sbuffer **en,  jmp_buf flag, int key )
 {
     struct sbuffer *newnode;
@@ -173,6 +226,8 @@ void sched_init(SCHED* self, int finish){
     self->finish=finish;
     self->st=(struct sbuffer *) NULL;
     self->en=(struct sbuffer *) NULL;
+    self->st_t=(struct tbuffer *) NULL;
+    self->en_t=(struct tbuffer *) NULL;
     self->init=0;
 }
 
@@ -185,10 +240,8 @@ SCHED* sched_create(int finish){
 
 
 // https://codeforwin.org/2017/12/pass-function-pointer-as-parameter-another-function-c.html
-void sched_reg(SCHED* self, void *typex, void (func_ptr()), int then, int n){
-   self->typex[n]=typex;
-   self->func_ptr[n]=func_ptr;
-   self->then[n]=then;
+void sched_reg(SCHED* self, void *typex, void (func_ptr()), int then){
+   task_lpush(&(self->st_t),&(self->en_t), typex, func_ptr);
    // key is given in seconds when called externally, so needs to be converted to microseconds
    // sched_insert(&(self->st),&(self->en), typex, func_ptr, then ,0);
 }
@@ -200,21 +253,39 @@ void sched_reg(SCHED* self, void *typex, void (func_ptr()), int then, int n){
 
 void sched_yield(SCHED* self, jmp_buf flag, int then) {
    sched_insert(&(self->st),&(self->en), flag, then);
-   if (self->init == 0) {
-      (self->func_ptr[1])(self->typex[1]);
-      self->init = 1;
+   if (self->st_t != NULL) { // starts execution of all processes
+      void *typex;
+      int (*func_ptr)();
+      task_rpop(&(self->st_t), &(self->en_t), &typex, &func_ptr);
+      (*func_ptr)(typex);
    }
+ 
+   // handles yields from processes in executions
    int now;
    jmp_buf flag2;
-   while (self->st != NULL) {
+   if  (self->st != NULL)  {
       sched_rpop(&(self->st), &(self->en), &flag2, &now);
       self->now=now;
       longjmp(flag2,1);
-   } 
+   }
+   
+   if (self->now <= self->finish*1000000) {
+      printf("sched_yield: premature exhaustion 1\n");
+   }
+   // If scheduler gets this far, it has run out of events 
 }
 
 void sched_run(SCHED* self) {
-   (self->func_ptr[0])(self->typex[0]);
+   void *typex;
+   int (*func_ptr)();
+   if (self->st_t != NULL) { // starts execution of first process
+      task_rpop(&(self->st_t), &(self->en_t), &typex, &func_ptr);
+      (*func_ptr)(typex);
+   }
+   if (self->now <= self->finish*1000000) {
+      printf("sched_yield: premature exhaustion 2\n");
+   }
+   // If scheduler gets this far, there are either no processes, or the first process has stopped.
 }
 
 //void sched_run(SCHED* self) {
