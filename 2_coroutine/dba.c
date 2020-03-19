@@ -250,7 +250,7 @@ void dba_gen(DBA* self) {
     // Create the frame
     
     while (self->sched->now <= self->sched->finish*1000000) {
-      tcont_control(self->tcont,200, &st_w, &en_w); // a single TCONT
+      tcont_control(self->tcont,400, &st_w, &en_w); // a single TCONT, slots (32 bt words)
       frame_lpush(&(self->st_frame), &(self->en_frame), &st_w, &en_w, 1, 100);
       //
       // Read the frame

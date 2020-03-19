@@ -75,6 +75,7 @@ void wred_destroy(WRED* self){
 
 
 void  wred_gen(WRED* self) {
+    int stackspace[20000] ; stackspace[3]=45;
     packet* p;
     int key;
     while (self->sched->now <= self->sched->finish*1000000) {
@@ -155,6 +156,7 @@ void pie_destroy(PIE* self){
     }
 }
 void pie_gen(PIE* self) {
+    int stackspace[20000] ; stackspace[3]=45;
     packet* p;
     int key;
     while (self->sched->now <= self->sched->finish*1000000) {
@@ -288,6 +290,7 @@ int dualq_update(DUALQ* self) {
 }
 
 void dualq_gen(DUALQ* self) {
+    int stackspace[20000] ; stackspace[3]=45;
     packet* p;
     int key;
     while (self->sched->now <= self->sched->finish*1000000) {
