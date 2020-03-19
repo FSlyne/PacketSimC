@@ -33,10 +33,13 @@ void socket_destroy(SOCKET* self){
 unsigned int socket_select(SOCKET* self) {
     int i;
     unsigned int omask = 0;
-    if (store_count(self->store[0]) > 0) omask |= 1 << 0;
-    if (store_count(self->store[1]) > 0) omask |= 1 << 1;
-    if (omask > 0) return omask;
-    waitfor(self->sched, 10); 
+    while (0<1) {
+        omask = 0;
+        if (store_count(self->store[0]) > 0) omask |= 1 << 0;
+        if (store_count(self->store[1]) > 0) omask |= 1 << 1;
+        if (omask > 0) return omask;
+        waitfor(self->sched, 10);
+    }
     return omask;
 }
 

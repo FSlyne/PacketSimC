@@ -17,7 +17,7 @@
  * Copyright 2020 Frank Slyne, Marco Ruffini. Trinity College Dublin.
  * Released under MIT licence.
  *
- * To Do: FSM
+ * To Do: Nanosecond clock, FSM
  */
 
 
