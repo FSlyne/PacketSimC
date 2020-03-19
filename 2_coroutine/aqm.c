@@ -118,7 +118,7 @@ void wred_put(WRED* self, packet* p){
     self->countsize++;
     self->bytesize+=p->size;
     p->enqueue_time=self->sched->now;
-    store_insert(&self->store->st,&self->store->en,p, 0);
+    store_insert(self->store,p, 0);
 }
 
  //PIE
@@ -202,7 +202,7 @@ void pie_put(PIE* self, packet* p) {
    int interval=p->size*8/self->linerate;
    self->myclock=(self->myclock>self->sched->now)?self->myclock:self->sched->now;
    self->myclock+=interval; // microseconds
-   store_insert(&self->store->st,&self->store->en,p, 0); // 0 => higher priority, on left of queue
+   store_insert(self->store,p, 0); // 0 => higher priority, on left of queue
    p->enqueue_time=self->sched->now;
 }
 
@@ -331,7 +331,7 @@ void dualq_put(DUALQ* self, packet* p) {
       self->packets_HPrec++;
       self->llpktcount++;
       //int interval=p->size*8/self->linerate;
-      store_insert(&self->store->st,&self->store->en,p, 0); // 0 => higher priority, on left of queue
+      store_insert(self->store,p, 0); // 0 => higher priority, on left of queue
       p->enqueue_time=self->sched->now;
       return;
    } else {// 1 => lesser priority
@@ -346,7 +346,7 @@ void dualq_put(DUALQ* self, packet* p) {
          self->packets_LPrec++;
          self->clpktcount++;        
          //int interval=p->size*8/self->linerate;
-         store_insert(&self->store->st,&self->store->en,p, 1); // 1 => lesser priority, on left of queue
+         store_insert(self->store,p, 1); // 1 => lesser priority, on left of queue
          p->enqueue_time=self->sched->now;
       }
    }

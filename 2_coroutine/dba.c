@@ -162,7 +162,7 @@ int  tcont_gen(TCONT* self) {
 //    packet* p=packet_create_noinit();
     packet* p;
 //    tcont_count(&(self->st), &(self->en));
-    store_rpop(&(self->st), &(self->en), &p, &key);
+    store_rpop_raw(&(self->st), &(self->en), &p, &key);
     self->countsize--;
     self->bytesize-=p->size;
     // postprocess
@@ -176,7 +176,7 @@ void tcont_control(TCONT* self, int slot, struct pbuffer **st, struct pbuffer **
     int key;
     while (1>0) {
       if (self->p == (packet*) NULL) {
-         store_rpop(&(self->st), &(self->en), &(self->p), &key);
+         store_rpop_raw(&(self->st), &(self->en), &(self->p), &key);
          if (self->p == (packet*) NULL) {
             self->needs=0;
             break;
@@ -184,7 +184,7 @@ void tcont_control(TCONT* self, int slot, struct pbuffer **st, struct pbuffer **
          self->needs=self->p->size;
       }
       if (self->needs <= slotbytes) {
-         store_insert(st, en, self->p,0);
+         store_insert_raw(st, en, self->p,0);
          // sched_reg_oneoff(self->sched, self, tcont_gen, self->sched->now+self->latency*self->tries); // send up stream
          // if (self->tries>1) printf("Fault\n");
          self->tries=1;
@@ -218,7 +218,7 @@ void tcont_put(TCONT* self, packet* p){
     self->countsize++;
     self->bytesize+=p->size;
     p->enqueue_time=self->sched->now;
-    store_insert(&self->st,&self->en,p, 0);
+    store_insert_raw(&self->st,&self->en,p, 0);
 }
 
 
@@ -257,11 +257,11 @@ void dba_gen(DBA* self) {
       frame_rpop(&(self->st_frame), &(self->en_frame), &st_r, &en_r, &grant_start, &grant_size);
       while (!(st_r == NULL)) {
          // printf("grant_start: %d grant_size: %d\n", grant_start, grant_size);
-         store_rpop(&st_r, &en_r, &p, &key);
+         store_rpop_raw(&st_r, &en_r, &p, &key);
          while(!(p == NULL)) {
             self->tcont->out(self->tcont->typex, p);
             // printf("d: %d %d %d %d\n",self->sched->now, p->id, p->create_time, self->sched->now-p->create_time);
-            store_rpop(&st_r, &en_r, &p, &key);
+            store_rpop_raw(&st_r, &en_r, &p, &key);
          }
          frame_rpop(&(self->st_frame), &(self->en_frame), &st_r, &en_r, &grant_start, &grant_size);
        }

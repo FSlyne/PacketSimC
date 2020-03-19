@@ -75,11 +75,5 @@ void queue_put(QUEUE* self, packet* p){
     self->countsize++;
     self->bytesize+=p->size;
     p->enqueue_time=self->sched->now;
-    store_insert(&self->store->st,&self->store->en,p, 0);
-    //if (self->store->depleted == 1) { // corresponding queue_gen has run out of packets to process
-    //  self->store->depleted = 0;
-    //  longjmp(self->store->flag, 1); // jump back up
-    //}
-   //printf("QSched: %d %d %d %d\n", self->sched->now, then, p->size, self->linerate);
-    // sched_reg_oneoff(self->sched, self, queue_gen, self->myclock+self->latency);
+    store_insert(self->store,p, 0);
 }

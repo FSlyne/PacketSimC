@@ -11,11 +11,13 @@ typedef struct {
     struct pbuffer *en;  
 } STORE;
 
-void store_insert(struct pbuffer **st, struct pbuffer **en,  packet* p, int key);
-void store_lpush(struct pbuffer **st, struct pbuffer **en,  packet* p, int key);
-void store_rpop(struct pbuffer **st, struct pbuffer **en,  packet **p, int *key);
-void store_clear(struct pbuffer **st, struct pbuffer **en);
-void store_count(int id, struct pbuffer **st, struct pbuffer **en);
+void store_insert(STORE* self,  packet* p, int key);
+void store_lpush(STORE* self,   packet* p, int key);
+void store_rpop(STORE* self,   packet **p, int *key);
+void store_insert_raw(struct pbuffer **st, struct pbuffer **en,  packet* p, int key);
+void store_rpop_raw(struct pbuffer **st, struct pbuffer **en,  packet **p, int *key);
+void store_clear(STORE* self);
+int store_count(STORE* self);
 STORE* store_create(SCHED* sched);
 void store_init(STORE* self, SCHED* sched);
 void store_destroy(STORE* obj);
