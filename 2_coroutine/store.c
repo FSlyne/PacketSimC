@@ -164,7 +164,6 @@ void store_init(STORE* self, SCHED* sched){
     self->st=(struct pbuffer *) NULL;
     self->en=(struct pbuffer *) NULL;
     self->sched=sched;
-    self->depleted=0;
 }
 
 STORE* store_create(SCHED* sched){
@@ -179,14 +178,30 @@ void store_destroy(STORE* obj){
     }
 }
 
-void store_yield(STORE* self, jmp_buf flag) {
-   if (self->st != NULL) {
-      self->depleted=0;
-      longjmp(flag,1); // store is not empty, return immediately
-   }  
-   //
-   self->depleted=1;
-   memcpy(self->flag, flag, sizeof(jmp_buf)); // save flag for later
+void store_rpop_block(STORE* self, packet **p, int *key)
+{
+   // int stackspace[200000] ; stackspace[3]=45;
+   jmp_buf flag;
+   store_rpop(&(self->st), &(self->en), p, key);
+   while (*p == NULL) { // wait for a packet, queue is empty
+      self->myclock=(self->myclock>self->sched->now)?self->myclock:self->sched->now;
+      self->myclock+=10;
+      if (setjmp(flag) == 0) {
+         sched_yield(self->sched, flag, self->myclock);
+      } else {
+         store_rpop(&(self->st), &(self->en), p, key);
+      }
+   }
+}
+
+//void store_yield(STORE* self, jmp_buf flag) {
+//   if (self->st != NULL) {
+//      self->depleted=0;
+//      longjmp(flag,1); // store is not empty, return immediately
+//   }  
+//   //
+//   self->depleted=1;
+//   memcpy(self->flag, flag, sizeof(jmp_buf)); // save flag for later
    // 
    //int now;
    //jmp_buf flag2;
@@ -196,6 +211,6 @@ void store_yield(STORE* self, jmp_buf flag) {
    //   longjmp(flag2,1);
    //}
    //printf("store_yield: exhaustion\n");
-   longjmp(flag,1);  // ??????
-}
+//   longjmp(flag,1);  // ??????
+//}
 

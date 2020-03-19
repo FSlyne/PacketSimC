@@ -11,7 +11,7 @@
  */
 
 
-void task_lpush(struct tbuffer **st, struct tbuffer **en,  void* typex, int (*func_ptr)())
+void task_lpush(struct tbuffer **st, struct tbuffer **en,  void* typex, void (*func_ptr)())
 {
     struct tbuffer *newnode;
     newnode = (struct tbuffer *)malloc(sizeof(struct tbuffer));
@@ -36,7 +36,7 @@ void task_lpush(struct tbuffer **st, struct tbuffer **en,  void* typex, int (*fu
 }
 
 
-void task_rpop(struct tbuffer **st, struct tbuffer **en,  void **typex, int (**func_ptr)())
+void task_rpop(struct tbuffer **st, struct tbuffer **en,  void **typex, void (**func_ptr)())
 {
     struct tbuffer *top;
 
@@ -64,13 +64,22 @@ void task_rpop(struct tbuffer **st, struct tbuffer **en,  void **typex, int (**f
 }
 
 
-void sched_insert(struct sbuffer **st, struct sbuffer **en,  jmp_buf flag, int key )
+void sched_insert(struct sbuffer **st, struct sbuffer **en,  jmp_buf flag, int key, int id )
 {
     struct sbuffer *newnode;
     struct sbuffer *idx, *tmp;
+    
+    //idx=*st;
+    //while (idx) {
+    //    if (id == idx->id)  // only add unique id's
+    //        printf("Warning unique id %d\n", id);
+    //        return;
+    //    idx = idx->next;
+    //}
 
     newnode = (struct sbuffer *)malloc(sizeof(struct sbuffer));
     newnode->key=key;
+    newnode->id=id;
     // https://www.linuxquestions.org/questions/programming-9/objects-and-assignment-in-interpreter-861721/page6.html
     memcpy(newnode->flag, flag, sizeof(jmp_buf));
     
@@ -107,11 +116,12 @@ void sched_insert(struct sbuffer **st, struct sbuffer **en,  jmp_buf flag, int k
     return;
 }
 
-void sched_rpush(struct sbuffer **st, struct sbuffer **en,  jmp_buf flag, int key )
+void sched_rpush(struct sbuffer **st, struct sbuffer **en,  jmp_buf flag, int key, int id )
 {
     struct sbuffer *newnode;
     newnode = (struct sbuffer *)malloc(sizeof(struct sbuffer));
     newnode->key=key;
+    newnode->id=id;
     memcpy(newnode->flag, flag, sizeof(jmp_buf));
  
     if (*en == NULL)
@@ -131,11 +141,12 @@ void sched_rpush(struct sbuffer **st, struct sbuffer **en,  jmp_buf flag, int ke
  
 }
 
-void sched_lpush(struct sbuffer **st, struct sbuffer **en,  jmp_buf flag, int key )
+void sched_lpush(struct sbuffer **st, struct sbuffer **en,  jmp_buf flag, int key, int id )
 {
     struct sbuffer *newnode;
     newnode = (struct sbuffer *)malloc(sizeof(struct sbuffer));
     newnode->key=key;
+    newnode->id=id;
     memcpy(newnode->flag, flag, sizeof(jmp_buf));
  
     if (*en == NULL)
@@ -156,7 +167,7 @@ void sched_lpush(struct sbuffer **st, struct sbuffer **en,  jmp_buf flag, int ke
 }
 
 
-void sched_rpop(struct sbuffer **st, struct sbuffer **en,  jmp_buf *flag, int *key)
+void sched_rpop(struct sbuffer **st, struct sbuffer **en,  jmp_buf *flag, int *key, int *id)
 {
     struct sbuffer *top;
 
@@ -174,6 +185,7 @@ void sched_rpop(struct sbuffer **st, struct sbuffer **en,  jmp_buf *flag, int *k
            
     top = *en;
     *key=top->key;
+    *id=top->id;
     memcpy(*flag, top->flag, sizeof(jmp_buf));
     if (*st == *en) {
         *st = NULL;
@@ -229,6 +241,7 @@ void sched_init(SCHED* self, int finish){
     self->st_t=(struct tbuffer *) NULL;
     self->en_t=(struct tbuffer *) NULL;
     self->init=0;
+    self->ider=0;
 }
 
 SCHED* sched_create(int finish){
@@ -252,19 +265,21 @@ void sched_reg(SCHED* self, void *typex, void (func_ptr()), int then){
 //}
 
 void sched_yield(SCHED* self, jmp_buf flag, int then) {
-   sched_insert(&(self->st),&(self->en), flag, then);
+   //printf("Inserting process %d\n", self->ider); 
+   sched_insert(&(self->st),&(self->en), flag, then, self->ider++);
    if (self->st_t != NULL) { // starts execution of all processes
       void *typex;
-      int (*func_ptr)();
+      void (*func_ptr)();
       task_rpop(&(self->st_t), &(self->en_t), &typex, &func_ptr);
       (*func_ptr)(typex);
    }
  
    // handles yields from processes in executions
-   int now;
+   int now; int id2;
    jmp_buf flag2;
    if  (self->st != NULL)  {
-      sched_rpop(&(self->st), &(self->en), &flag2, &now);
+      sched_rpop(&(self->st), &(self->en), &flag2, &now, &id2);
+      //printf(" Popping process %d\n", id2);
       self->now=now;
       longjmp(flag2,1);
    }
@@ -277,7 +292,7 @@ void sched_yield(SCHED* self, jmp_buf flag, int then) {
 
 void sched_run(SCHED* self) {
    void *typex;
-   int (*func_ptr)();
+   void (*func_ptr)();
    if (self->st_t != NULL) { // starts execution of first process
       task_rpop(&(self->st_t), &(self->en_t), &typex, &func_ptr);
       (*func_ptr)(typex);
@@ -287,6 +302,21 @@ void sched_run(SCHED* self) {
    }
    // If scheduler gets this far, there are either no processes, or the first process has stopped.
 }
+
+void waitfor(SCHED* self, int n) {
+   jmp_buf flag;
+   if (setjmp(flag) == 0) {
+      sched_yield(self, flag, self->now+n);
+   } 
+}
+
+void waituntil(SCHED* self, int n) {
+   jmp_buf flag;
+   if (setjmp(flag) == 0) {
+      sched_yield(self, flag, n);
+   }
+}
+
 
 //void sched_run(SCHED* self) {
 //    int now;

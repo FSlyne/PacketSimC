@@ -75,23 +75,10 @@ void wred_destroy(WRED* self){
 
 
 void  wred_gen(WRED* self) {
-    int stackspace[200000] ; stackspace[3]=45;
-    if (self->status == 0) { // first time queue_gen  is run
-        self->status = 1;
-    }
-    jmp_buf flag;
     packet* p;
     int key;
     while (self->sched->now <= self->sched->finish*1000000) {
-         store_rpop(&(self->store->st), &(self->store->en), &p, &key);
-         if (p == NULL) {
-            if (setjmp(flag) == 0) {
-               self->myclock=(self->myclock>self->sched->now)?self->myclock:self->sched->now;
-               self->myclock+=10;
-               sched_yield(self->sched, flag, self->myclock);
-            }
-            continue;
-         }
+         store_rpop_block(self->store, &p, &key);
          self->countsize--;
          self->bytesize-=p->size;
          int interval=p->size*8/self->linerate;
@@ -99,13 +86,8 @@ void  wred_gen(WRED* self) {
          self->myclock+=interval; // microseconds
          // postprocess
          // Need to replicate self.out.put(p) functionality
-         if (setjmp(flag) == 0) {
-            //printf("%ld set jmp to scheduler %d\n", self->sched->now, p->flow_id);
-            sched_yield(self->sched, flag, self->myclock+self->latency);
-         }  else {
-            //printf("%ld returning from scheduler %d\n", self->sched->now, p->flow_id);
-            self->out(self->typex, p);
-         }
+         waituntil(self->sched,self->myclock+self->latency);
+         self->out(self->typex, p);
     }
 }
 
@@ -173,18 +155,10 @@ void pie_destroy(PIE* self){
     }
 }
 void pie_gen(PIE* self) {
-    int stackspace[200000] ; stackspace[3]=45;
-    jmp_buf flag;
     packet* p;
     int key;
     while (self->sched->now <= self->sched->finish*1000000) {
-         store_rpop(&(self->store->st), &(self->store->en), &p, &key);
-         if (p == NULL) { // wait for a packet, queue is empty
-            if (setjmp(flag) == 0) {
-               sched_yield(self->sched, flag, self->sched->now+10);
-            }
-            continue;
-         }
+      store_rpop_block(self->store, &p, &key);
       self->cqdelay=self->sched->now - p->enqueue_time;
       self->countsize--;
       self->bytesize-=p->size;
@@ -194,13 +168,9 @@ void pie_gen(PIE* self) {
          self->pqdelay=self->cqdelay;
          self->tupdate_last=self->sched->now;
       }
-      if (setjmp(flag) == 0) {
-         //printf("%ld set jmp to scheduler %d\n", self->sched->now, p->flow_id);
-         sched_yield(self->sched, flag, self->sched->now);
-      }  else {
-         //printf("%ld returning from scheduler %d\n", self->sched->now, p->flow_id);
-         self->out(self->typex, p);
-      }
+      waituntil(self->sched,self->sched->now);
+            //printf("%ld returning from scheduler %d\n", self->sched->now, p->flow_id);
+      self->out(self->typex, p);
     }
 }
 
@@ -318,18 +288,10 @@ int dualq_update(DUALQ* self) {
 }
 
 void dualq_gen(DUALQ* self) {
-    int stackspace[200000] ; stackspace[3]=45;
-    jmp_buf flag;
     packet* p;
     int key;
     while (self->sched->now <= self->sched->finish*1000000) {
-         store_rpop(&(self->store->st), &(self->store->en), &p, &key);
-         if (p == NULL) { // wait for a packet, queue is empty
-            if (setjmp(flag) == 0) {
-               sched_yield(self->sched, flag, self->sched->now+10);
-            }
-            continue;
-         }
+         store_rpop_block(self->store, &p, &key);
          if (p->flow_id == 0) {
             self->lqdelay=(self->sched->now-p->create_time);
             int pdash_L=dualq_laqm(self);
@@ -347,17 +309,13 @@ void dualq_gen(DUALQ* self) {
          self->p_CL = self->p * self->k; // Coupled L4S prob = base prob * coupling factor
          self->p_C = self->p^2; // Classic prob = (base prob)^2
          self->prevq=self->curq;
-         printf("%ld\t%f\t%d\t%d\t%d\t%d\t%d\n",
+         printf("%ld\t%d\t%d\t%d\t%d\t%d\t%d\n",
                 self->sched->now, self->p,self->alpha_U,self->beta_U,self->target, self->curq, self->prevq);
          self->tupdate_last=self->sched->now;
       }
-      if (setjmp(flag) == 0) {
-         //printf("%ld set jmp to scheduler %d\n", self->sched->now, p->flow_id);
-         sched_yield(self->sched, flag, self->sched->now);
-      }  else {
-         //printf("%ld returning from scheduler %d\n", self->sched->now, p->flow_id);
-         self->out(self->typex, p);
-      }
+      waituntil(self->sched,self->sched->now);
+            //printf("%ld returning from scheduler %d\n", self->sched->now, p->flow_id);
+      self->out(self->typex, p);
     }
 }
 
@@ -369,7 +327,7 @@ void dualq_put(DUALQ* self, packet* p) {
    if (p->flow_id == 0) {
       self->packets_HPrec++;
       self->llpktcount++;
-      int interval=p->size*8/self->linerate;
+      //int interval=p->size*8/self->linerate;
       store_insert(&self->store->st,&self->store->en,p, 0); // 0 => higher priority, on left of queue
       p->enqueue_time=self->sched->now;
       return;
@@ -384,7 +342,7 @@ void dualq_put(DUALQ* self, packet* p) {
          //printf("Queuing Classic\n");
          self->packets_LPrec++;
          self->clpktcount++;        
-         int interval=p->size*8/self->linerate;
+         //int interval=p->size*8/self->linerate;
          store_insert(&self->store->st,&self->store->en,p, 1); // 1 => lesser priority, on left of queue
          p->enqueue_time=self->sched->now;
       }

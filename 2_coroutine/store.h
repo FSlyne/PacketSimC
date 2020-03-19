@@ -6,7 +6,7 @@
 typedef struct {
     SCHED* sched;
     jmp_buf flag;
-    int depleted;
+    int myclock;
     struct pbuffer *st;
     struct pbuffer *en;  
 } STORE;
@@ -20,5 +20,6 @@ STORE* store_create(SCHED* sched);
 void store_init(STORE* self, SCHED* sched);
 void store_destroy(STORE* obj);
 void store_yield(STORE* self, jmp_buf flag);
+void store_rpop_block(STORE* self, packet **p, int *key);
 
 #endif // STORE_H

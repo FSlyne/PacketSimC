@@ -22,7 +22,7 @@
 
 int main() {
    
-    int scenario = 7;
+    int scenario = 2;
     if (scenario == 1) { // (PKT+DIST, PKT+DIST) -> NULL BOX -> SINK       
          SCHED* sched=sched_create(10); // seconds
          PKT* pkt1=pkt_create(sched,1,3,1);  // from, to, flow_id
@@ -50,9 +50,9 @@ int main() {
     } else if (scenario == 2) { // Single queue. PKT+DIST -> QUEUE-> SINK
          SCHED* sched=sched_create(10); // seconds
          PKT* pkt1=pkt_create(sched,1,10, 1); // from, to, flow_id
-         DIST* distfunc=dist_create(100,100); // Transmission (Mbps), Mean Packet size (Bytes), Poisson, exponentially distributed
+         DIST* distfunc=dist_create(30,100); // Transmission (Mbps), Mean Packet size (Bytes), Poisson, exponentially distributed
          SINK* sink=sink_create(sched);
-         QUEUE* queue=queue_create(sched,10, 0, 0, 1); // Mbps, Packet Count limit, Packet Byte limit, latency (usec)
+         QUEUE* queue=queue_create(sched,10, 121, 0, 1); // Mbps, Packet Count limit, Packet Byte limit, latency (usec)
 
          pkt1->out=(void *)queue_put; pkt1->typex=queue; pkt1->arrivalfn=dist_exec; pkt1->arrivalfntype=distfunc;
          queue->out=(void *)sink_put; queue->typex=sink;

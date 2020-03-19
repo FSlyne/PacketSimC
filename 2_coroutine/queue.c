@@ -35,23 +35,14 @@ void queue_destroy(QUEUE* self){
 }
 
 void  queue_gen(QUEUE* self) {
-    int stackspace[200000] ; stackspace[3]=45;
+   int stackspace[20000] ; stackspace[3]=45;
     if (self->status == 0) { // first time queue_gen  is run
         self->status = 1;
     }
-    jmp_buf flag;
     packet* p;
     int key;
     while (self->sched->now <= self->sched->finish*1000000) {
-         store_rpop(&(self->store->st), &(self->store->en), &p, &key);
-         if (p == NULL) { // wait for a packet, queue is empty
-            if (setjmp(flag) == 0) {
-               self->myclock=(self->myclock>self->sched->now)?self->myclock:self->sched->now;
-               self->myclock+=10;
-               sched_yield(self->sched, flag, self->myclock);
-            }
-            continue;
-         }
+         store_rpop_block(self->store, &p, &key);
          self->countsize--;
          self->bytesize-=p->size;
          int interval=p->size*8/self->linerate;
@@ -59,13 +50,9 @@ void  queue_gen(QUEUE* self) {
          self->myclock+=interval; // microseconds
          // postprocess
          // Need to replicate self.out.put(p) functionality
-         if (setjmp(flag) == 0) {
-            //printf("%ld set jmp to scheduler %d\n", self->sched->now, p->flow_id);
-            sched_yield(self->sched, flag, self->myclock+self->latency);
-         }  else {
-            //printf("%ld returning from scheduler %d\n", self->sched->now, p->flow_id);
-            self->out(self->typex, p);
-         }
+         waituntil(self->sched,self->myclock+self->latency);
+         // printf("%ld returning from scheduler %d\n", self->sched->now, p->flow_id);
+         self->out(self->typex, p);
     }
 }
 
