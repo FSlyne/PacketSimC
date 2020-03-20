@@ -23,7 +23,7 @@
 
 int main() {
    
-    int scenario = 2;
+    int scenario = 7;
     if (scenario == 1) { // (PKT+DIST, PKT+DIST) -> NULL BOX -> SINK       
          SCHED* sched=sched_create(10); // seconds
          PKT* pkt1=pkt_create(sched,1,3,1);  // from, to, flow_id

@@ -155,10 +155,23 @@ void pie_destroy(PIE* self){
         free(self);
     }
 }
+
+void pie_timer(PIE* self) { // pie update timer
+   int stackspace[20000] ; stackspace[3]=45;
+   while (0<1) {
+      self->p = (self->alpha*(self->cqdelay - self->target) + self->beta *(self->cqdelay - self->pqdelay))/1000000;
+      printf("%ld\t%f\t%d\t%d\t%d\t%d\t%d\n", self->sched->now, self->p,self->alpha,self->beta,self->target, self->cqdelay, self->pqdelay);
+      self->pqdelay=self->cqdelay;
+      self->tupdate_last=self->sched->now;
+      waitfor(self->sched, self->tupdate );
+   }
+}
+
 void pie_gen(PIE* self) {
     int stackspace[20000] ; stackspace[3]=45;
     packet* p;
     int key;
+    sched_reg(self->sched, self, pie_timer, 0); // spawn the dualq timer subprocess
     while (self->sched->now <= self->sched->finish*1000000) {
       store_rpop_block(self->store, &p, &key);
       self->cqdelay=self->sched->now - p->enqueue_time;
@@ -289,10 +302,25 @@ int dualq_update(DUALQ* self) {
    return self->sched->now+self->tupdate;
 }
 
+void dualq_timer(DUALQ* self) { // dualq update timer
+   int stackspace[20000] ; stackspace[3]=45;
+   while (0<1) {
+      self->curq=self->cqdelay; // ms
+      self->p = self->p + self->alpha_U * (self->curq - self->target) + self->beta_U * (self->curq - self->prevq);
+      self->p_CL = self->p * self->k; // Coupled L4S prob = base prob * coupling factor
+      self->p_C = self->p^2; // Classic prob = (base prob)^2
+      self->prevq=self->curq;
+      printf("%ld\t%d\t%d\t%d\t%d\t%d\t%d\n",
+             self->sched->now, self->p,self->alpha_U,self->beta_U,self->target, self->curq, self->prevq);
+      waitfor(self->sched, self->tupdate );
+   }
+}
+
 void dualq_gen(DUALQ* self) {
     int stackspace[20000] ; stackspace[3]=45;
     packet* p;
     int key;
+    sched_reg(self->sched, self, dualq_timer, 0); // spawn the dualq timer subprocess
     while (self->sched->now <= self->sched->finish*1000000) {
          store_rpop_block(self->store, &p, &key);
          if (p->flow_id == 0) {
@@ -306,16 +334,6 @@ void dualq_gen(DUALQ* self) {
          }
          self->llpktcount=max(0,self->llpktcount);
          self->clpktcount=max(0,self->clpktcount);
-      if (self->tupdate < (self->sched->now - self->tupdate_last)) {
-         self->curq=self->cqdelay; // ms
-         self->p = self->p + self->alpha_U * (self->curq - self->target) + self->beta_U * (self->curq - self->prevq);
-         self->p_CL = self->p * self->k; // Coupled L4S prob = base prob * coupling factor
-         self->p_C = self->p^2; // Classic prob = (base prob)^2
-         self->prevq=self->curq;
-         printf("%ld\t%d\t%d\t%d\t%d\t%d\t%d\n",
-                self->sched->now, self->p,self->alpha_U,self->beta_U,self->target, self->curq, self->prevq);
-         self->tupdate_last=self->sched->now;
-      }
       waituntil(self->sched,self->sched->now);
             //printf("%ld returning from scheduler %d\n", self->sched->now, p->flow_id);
       self->out(self->typex, p);
