@@ -44,8 +44,7 @@ void sched_lpush(struct sbuffer **st, struct sbuffer **en,  jmp_buf flag, int ke
 void sched_init(SCHED* self, int finish);
 SCHED* sched_create(int finish);
 void sched_yield(SCHED* self, jmp_buf flag, int then);
-void sched_reg(SCHED* self, void *typex, void (func_ptr()), int then);
-//void sched_reg_oneoff(SCHED* self, void *typex, int (func_ptr()), int key);
+void spawn(SCHED* self, void (func_ptr()), void *typex, int then);
 void sched_run(SCHED* self);
 void sched_sweep(SCHED* self);
 void task_lpush(struct tbuffer **st, struct tbuffer **en,  void* typex, void (*func_ptr)());

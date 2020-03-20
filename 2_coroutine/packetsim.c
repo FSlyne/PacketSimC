@@ -17,7 +17,7 @@
  * Copyright 2020 Frank Slyne, Marco Ruffini. Trinity College Dublin.
  * Released under MIT licence.
  *
- * To Do: Nanosecond clock, interrupts, signals, FSM
+ * To Do: Nanosecond clock, interrupts, signals, FSM, debug flags
  */
 
 
@@ -39,9 +39,9 @@ int main() {
          pkt3->out=(void *)box_put; pkt3->typex=box; pkt3->arrivalfn=dist_exec; pkt3->arrivalfntype=distfunc;
          box->out=(void *)sink_put; box->typex=sink;
          
-         sched_reg(sched, pkt1, pkt_gen, 0);
-         sched_reg(sched, pkt2, pkt_gen, 0);
-         sched_reg(sched, pkt3, pkt_gen, 0);
+         spawn(sched, pkt_gen, pkt1, 0);
+         spawn(sched, pkt_gen, pkt2, 0);
+         spawn(sched, pkt_gen, pkt3, 0);
          
          sched_run(sched);   
          pkt_stats(pkt1);
@@ -58,8 +58,8 @@ int main() {
          pkt1->out=(void *)queue_put; pkt1->typex=queue; pkt1->arrivalfn=dist_exec; pkt1->arrivalfntype=distfunc;
          queue->out=(void *)sink_put; queue->typex=sink;
    
-         sched_reg(sched, pkt1, pkt_gen, 0);
-         sched_reg(sched, queue, queue_gen, 0);
+         spawn(sched, pkt_gen, pkt1, 0);
+         spawn(sched, queue_gen, queue, 0);
 
          sched_run(sched);
          
@@ -83,12 +83,12 @@ int main() {
          pkt5->out=(void *)queue_put; pkt5->typex=queue; pkt5->arrivalfn=dist_exec; pkt5->arrivalfntype=distfunc;
          queue->out=(void *)sink_put; queue->typex=sink;
    
-         sched_reg(sched, pkt1, pkt_gen, 0);
-         sched_reg(sched, pkt2, pkt_gen, 0);
-         sched_reg(sched, pkt3, pkt_gen, 0);
-         sched_reg(sched, pkt4, pkt_gen, 0);
-         sched_reg(sched, pkt5, pkt_gen, 0);
-         sched_reg(sched, queue, queue_gen, 0);
+         spawn(sched, pkt_gen, pkt1, 0);
+         spawn(sched, pkt_gen, pkt2, 0);
+         spawn(sched, pkt_gen, pkt3, 0);
+         spawn(sched, pkt_gen, pkt4, 0);
+         spawn(sched, pkt_gen, pkt5, 0);
+         spawn(sched, queue_gen, queue, 0);
     
          sched_run(sched);
          
@@ -111,9 +111,9 @@ int main() {
          pkt2->out=(void *)wred_put; pkt2->typex=wred; pkt2->arrivalfn=dist_exec; pkt2->arrivalfntype=distfunc;
          wred->out=(void *)sink_put; wred->typex=sink;
          
-         sched_reg(sched, pkt1, pkt_gen, 0);
-         sched_reg(sched, pkt2, pkt_gen, 0);
-         sched_reg(sched, wred, wred_gen, 0);
+         spawn(sched, pkt_gen, pkt1, 0);
+         spawn(sched, pkt_gen, pkt2, 0);
+         spawn(sched, wred_gen, wred, 0);
          
          sched_run(sched);
          
@@ -131,7 +131,7 @@ int main() {
          TRTCM* trtcm=trtcm_create(sched, pir, 64000, cir, 128000); // PIR, PBS, CIR, CBS
          pkt1->out=(void *)trtcm_put; pkt1->typex=trtcm; pkt1->arrivalfn=dist_exec; pkt1->arrivalfntype=distfunc;
          trtcm->out=(void *)sink_put; trtcm->typex=sink;
-         sched_reg(sched, pkt1, pkt_gen, 0);
+         spawn(sched, pkt_gen, pkt1, 0);
          sched_run(sched);
          pkt_stats(pkt1);
          sink_stats(sink);
@@ -147,8 +147,8 @@ int main() {
          pkt1->out=(void *)tcont_put; pkt1->typex=tcont; pkt1->arrivalfn=dist_exec; pkt1->arrivalfntype=distfunc;
          tcont->out=(void *)sink_put; tcont->typex=sink;
                   
-         sched_reg(sched, pkt1, pkt_gen, 0);
-         sched_reg(sched, dba, dba_gen, 0);
+         spawn(sched, pkt_gen, pkt1, 0);
+         spawn(sched, dba_gen, dba, 0);
          
          sched_run(sched);
          
@@ -166,8 +166,8 @@ int main() {
          pkt1->out=(void *)pie_put; pkt1->typex=pie; pkt1->arrivalfn=dist_exec; pkt1->arrivalfntype=distfunc;
          pie->out=(void *)sink_put; pie->typex=sink;
                   
-         sched_reg(sched, pkt1, pkt_gen, 0);
-         sched_reg(sched, pie, pie_gen, 0);
+         spawn(sched, pkt_gen, pkt1, 0);
+         spawn(sched, pie_gen, pie, 0);
          
          sched_run(sched);
          
@@ -187,9 +187,9 @@ int main() {
          pkt2->out=(void *)dualq_put; pkt2->typex=dualq; pkt2->arrivalfn=dist_exec; pkt2->arrivalfntype=distfunc;
          dualq->out=(void *)sink_put; dualq->typex=sink;
                   
-         sched_reg(sched, pkt1, pkt_gen, 0);
-         sched_reg(sched, pkt2, pkt_gen, 0);
-         sched_reg(sched, dualq, dualq_gen, 0);
+         spawn(sched, pkt_gen, pkt1, 0);
+         spawn(sched, pkt_gen, pkt2, 0);
+         spawn(sched, dualq_gen, dualq, 0);
          
          sched_run(sched);
          
@@ -207,8 +207,8 @@ int main() {
         socket->out[1]=(void *)socket_put1; socket->typex[1]=socket;
         socket->out[0]=(void *)sink_put; socket->typex[0]=sink;
         
-        sched_reg(sched, pkt1, pkt_gen, 0);
-        sched_reg(sched, socket, socket_gen, 0);
+        spawn(sched, pkt_gen, pkt1, 0);
+        spawn(sched, socket_gen, socket, 0);
  
         sched_run(sched);
         pkt_stats(pkt1);       

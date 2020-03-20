@@ -253,7 +253,7 @@ SCHED* sched_create(int finish){
 
 
 // https://codeforwin.org/2017/12/pass-function-pointer-as-parameter-another-function-c.html
-void sched_reg(SCHED* self, void *typex, void (func_ptr()), int then){
+void spawn(SCHED* self, void (func_ptr()), void *typex, int then){
    task_lpush(&(self->st_t),&(self->en_t), typex, func_ptr);
    // key is given in seconds when called externally, so needs to be converted to microseconds
    // sched_insert(&(self->st),&(self->en), typex, func_ptr, then ,0);

@@ -171,7 +171,7 @@ void pie_gen(PIE* self) {
     int stackspace[20000] ; stackspace[3]=45;
     packet* p;
     int key;
-    sched_reg(self->sched, self, pie_timer, 0); // spawn the dualq timer subprocess
+    spawn(self->sched, pie_timer, self, 0); // spawn the pie timer subprocess
     while (self->sched->now <= self->sched->finish*1000000) {
       store_rpop_block(self->store, &p, &key);
       self->cqdelay=self->sched->now - p->enqueue_time;
@@ -320,7 +320,7 @@ void dualq_gen(DUALQ* self) {
     int stackspace[20000] ; stackspace[3]=45;
     packet* p;
     int key;
-    sched_reg(self->sched, self, dualq_timer, 0); // spawn the dualq timer subprocess
+    spawn(self->sched, dualq_timer, self, 0); // spawn the dualq timer subprocess
     while (self->sched->now <= self->sched->finish*1000000) {
          store_rpop_block(self->store, &p, &key);
          if (p->flow_id == 0) {
