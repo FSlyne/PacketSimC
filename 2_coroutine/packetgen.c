@@ -66,13 +66,15 @@ void  pkt_gen(PKT* self) {
          // postprocess
          // Need to replicate self.out.put(p) functionality
          delay=self->sched->now+self->arrivalfn(self->arrivalfntype);
-         if ( setjmp(flag) == 0) {
-            //printf("%ld set jmp to scheduler %d\n", self->sched->now, self->flow_id);
-            sched_yield(self->sched, flag, delay);
-         } else {
-            //printf("%ld returning from scheduler %d\n", self->sched->now, self->flow_id);
-            self->out(self->typex, p);
-         }
+         waitfor(self->sched, self->arrivalfn(self->arrivalfntype));
+         self->out(self->typex, p);
+         //if ( setjmp(flag) == 0) {
+         //   //printf("%ld set jmp to scheduler %d\n", self->sched->now, self->flow_id);
+         //   sched_yield(self->sched, flag, delay);
+         //} else {
+         //   //printf("%ld returning from scheduler %d\n", self->sched->now, self->flow_id);
+         //   self->out(self->typex, p);
+         //}
     }
 }
 
