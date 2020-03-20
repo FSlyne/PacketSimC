@@ -34,6 +34,14 @@ void queue_destroy(QUEUE* self){
     }
 }
 
+void timer1000(QUEUE* self) { // simple timer example
+   int stackspace[20000] ; stackspace[3]=45;
+   while (0<1) {
+      printf("%ld tick\n", self->sched->now);
+      waitfor(self->sched, 1000);
+   }
+}
+
 void  queue_gen(QUEUE* self) {
    int stackspace[20000] ; stackspace[3]=45;
     if (self->status == 0) { // first time queue_gen  is run
@@ -41,6 +49,7 @@ void  queue_gen(QUEUE* self) {
     }
     packet* p;
     int key;
+    sched_reg(self->sched, self, timer1000, 0); // example of spawning a sub process
     while (self->sched->now <= self->sched->finish*1000000) {
          store_rpop_block(self->store, &p, &key);
          self->countsize--;

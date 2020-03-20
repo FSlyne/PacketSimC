@@ -17,13 +17,13 @@
  * Copyright 2020 Frank Slyne, Marco Ruffini. Trinity College Dublin.
  * Released under MIT licence.
  *
- * To Do: Nanosecond clock, FSM
+ * To Do: Nanosecond clock, interrupts, signals, FSM
  */
 
 
 int main() {
    
-    int scenario = 9;
+    int scenario = 2;
     if (scenario == 1) { // (PKT+DIST, PKT+DIST) -> NULL BOX -> SINK       
          SCHED* sched=sched_create(10); // seconds
          PKT* pkt1=pkt_create(sched,1,3,1);  // from, to, flow_id
