@@ -24,6 +24,7 @@ typedef struct {
     struct tbuffer *en_t;    
     jmp_buf token;
     int ider;
+    int debug;
 } SCHED;
 
 struct tbuffer

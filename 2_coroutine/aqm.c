@@ -39,7 +39,7 @@ int wred_drop(int b, int e, int d, int c) {
    return v;
 }
 
-double rand_0_1(void)
+double rand_0_1(void) // random number betwixt 0 and 1
 {
     return rand() / ((double) RAND_MAX);
 }
@@ -162,7 +162,6 @@ void pie_timer(PIE* self) { // pie update timer
       self->p = (self->alpha*(self->cqdelay - self->target) + self->beta *(self->cqdelay - self->pqdelay))/1000000;
       printf("%ld\t%f\t%d\t%d\t%d\t%d\t%d\n", self->sched->now, self->p,self->alpha,self->beta,self->target, self->cqdelay, self->pqdelay);
       self->pqdelay=self->cqdelay;
-      self->tupdate_last=self->sched->now;
       waitfor(self->sched, self->tupdate );
    }
 }
@@ -177,14 +176,8 @@ void pie_gen(PIE* self) {
       self->cqdelay=self->sched->now - p->enqueue_time;
       self->countsize--;
       self->bytesize-=p->size;
-      if (self->tupdate < (self->sched->now - self->tupdate_last)) {
-         self->p = (self->alpha*(self->cqdelay - self->target) + self->beta *(self->cqdelay - self->pqdelay))/1000000;
-         printf("%ld\t%f\t%d\t%d\t%d\t%d\t%d\n", self->sched->now, self->p,self->alpha,self->beta,self->target, self->cqdelay, self->pqdelay);
-         self->pqdelay=self->cqdelay;
-         self->tupdate_last=self->sched->now;
-      }
-      waituntil(self->sched,self->sched->now);
-            //printf("%ld returning from scheduler %d\n", self->sched->now, p->flow_id);
+      //waituntil(self->sched,self->sched->now); // what is the queue handling delay required here
+      //printf("%ld returning from scheduler %d\n", self->sched->now, p->flow_id);
       self->out(self->typex, p);
     }
 }
@@ -334,8 +327,8 @@ void dualq_gen(DUALQ* self) {
          }
          self->llpktcount=max(0,self->llpktcount);
          self->clpktcount=max(0,self->clpktcount);
-      waituntil(self->sched,self->sched->now);
-            //printf("%ld returning from scheduler %d\n", self->sched->now, p->flow_id);
+      waituntil(self->sched,self->sched->now); // what is the queue handline delay here
+      //printf("%ld returning from scheduler %d\n", self->sched->now, p->flow_id);
       self->out(self->typex, p);
     }
 }

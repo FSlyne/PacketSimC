@@ -23,8 +23,9 @@
 
 int main() {
    
-    int scenario = 7;
-    if (scenario == 1) { // (PKT+DIST, PKT+DIST) -> NULL BOX -> SINK       
+    int scenario = 5;
+    if (scenario == 1) { // (PKT+DIST, PKT+DIST) -> NULL BOX -> SINK
+         printf("(PKT+DIST, PKT+DIST) -> NULL BOX -> SINK\n");
          SCHED* sched=sched_create(10); // seconds
          PKT* pkt1=pkt_create(sched,1,3,1);  // from, to, flow_id
          PKT* pkt2=pkt_create(sched,2,3,2);
@@ -49,6 +50,7 @@ int main() {
          pkt_stats(pkt3);
          sink_stats(sink);         
     } else if (scenario == 2) { // Single queue. PKT+DIST -> QUEUE-> SINK
+         printf("Single queue. PKT+DIST -> QUEUE-> SINK\n");
          SCHED* sched=sched_create(10); // seconds
          PKT* pkt1=pkt_create(sched,1,10, 1); // from, to, flow_id
          DIST* distfunc=dist_create(30,100); // Transmission (Mbps), Mean Packet size (Bytes), Poisson, exponentially distributed
@@ -66,6 +68,7 @@ int main() {
          pkt_stats(pkt1);
          sink_stats(sink);  
     } else if (scenario == 3) { // Single queue. PKT+DIST -> QUEUE-> SINK
+         printf("Single queue. PKT+DIST -> QUEUE-> SINK\n");
          SCHED* sched=sched_create(10); // seconds
          PKT* pkt1=pkt_create(sched,1,10, 1); // from, to, flow_id
          PKT* pkt2=pkt_create(sched,2,10, 2); // from, to, flow_id
@@ -98,7 +101,8 @@ int main() {
          pkt_stats(pkt4);
          pkt_stats(pkt5);
          sink_stats(sink);
-    }   else if (scenario == 4) { // (PKT+DIST, PKT+DIST)  -> WRED QUEUE -> SINK  
+    }   else if (scenario == 4) { // (PKT+DIST, PKT+DIST)  -> WRED QUEUE -> SINK
+         printf("(PKT+DIST, PKT+DIST)  -> WRED QUEUE -> SINK\n");
          SCHED* sched=sched_create(1); // seconds
          PKT* pkt1=pkt_create(sched,1,3, 1); // from, to, flow_id
          PKT* pkt2=pkt_create(sched,2,3, 2); // from, to, flow_id
@@ -121,21 +125,23 @@ int main() {
          pkt_stats(pkt2);
          sink_stats(sink);
     }  else if (scenario == 5) { //  PKT+DIST -> TRTCM  -> SINK
-         int linerate=100;
+         printf("PKT+DIST -> TRTCM  -> SINK\n");
+         int linerate=200;
          int cir=linerate*1000000/2;
          int pir=cir*2;
          SCHED* sched=sched_create(10); // seconds
          PKT* pkt1=pkt_create(sched,1,3, 1); // from, to, flow_id
-         DIST* distfunc=dist_create(linerate,100); // Transmission (Mbps), Mean Packet size (Bytes)
+         DIST* distfunc=dist_create(linerate,1000); // Transmission (Mbps), Mean Packet size (Bytes)
          SINK* sink=sink_create(sched);
-         TRTCM* trtcm=trtcm_create(sched, pir, 64000, cir, 128000); // PIR, PBS, CIR, CBS
+         TRTCM* trtcm=trtcm_create(sched, pir, 128000, cir, 64000); // PIR, PBS, CIR, CBS
          pkt1->out=(void *)trtcm_put; pkt1->typex=trtcm; pkt1->arrivalfn=dist_exec; pkt1->arrivalfntype=distfunc;
          trtcm->out=(void *)sink_put; trtcm->typex=sink;
          spawn(sched, pkt_gen, pkt1, 0);
          sched_run(sched);
          pkt_stats(pkt1);
          sink_stats(sink);
-    } else if (scenario == 6) { // PKT+DIST -> TCONT + DBA  -> SINK 
+    } else if (scenario == 6) { // PKT+DIST -> TCONT + DBA  -> SINK
+         printf("PKT+DIST -> TCONT + DBA  -> SINK\n");
          SCHED* sched=sched_create(10); // seconds
          PKT* pkt1=pkt_create(sched,1,3, 1); // from, to, flow_id
          DIST* distfunc=dist_create(40,100); // Transmission (Mbps), Mean Packet size (Bytes)
@@ -154,7 +160,8 @@ int main() {
          
          pkt_stats(pkt1);
          sink_stats(sink);      
-    } else if (scenario == 7) { // (PKT+DIST)  -> PIE  -> SINK 
+    } else if (scenario == 7) { // (PKT+DIST)  -> PIE  -> SINK
+         printf("(PKT+DIST)  -> PIE  -> SINK\n");
          SCHED* sched=sched_create(10); // seconds
          PKT* pkt1=pkt_create(sched,1,3, 0); // from, to, flow_id
          DIST* distfunc=dist_create(15,100); // Transmission (Mbps), Mean Packet size (Bytes)
@@ -173,7 +180,8 @@ int main() {
          
          pkt_stats(pkt1);
          sink_stats(sink);
-     }  else if (scenario == 8) { // (PKT+DIST, PKT+DIST)  -> DUALQ  -> SINK 
+     }  else if (scenario == 8) { // (PKT+DIST, PKT+DIST)  -> DUALQ  -> SINK
+         printf("(PKT+DIST, PKT+DIST)  -> DUALQ  -> SINK\n");
          SCHED* sched=sched_create(10); // seconds
          PKT* pkt1=pkt_create(sched,1,3, 0); // from, to, flow_id
          PKT* pkt2=pkt_create(sched,2,3, 1); // from, to, flow_id
@@ -197,6 +205,7 @@ int main() {
          pkt_stats(pkt2);
          sink_stats(sink);   
     } else if (scenario == 9) { // (PKT+DIST)  -> socket looped -> SINK
+        printf("(PKT+DIST)  -> socket looped -> SINK\n");
         SCHED* sched=sched_create(10); // seconds
         SOCKET* socket=socket_create(sched);
         PKT* pkt1=pkt_create(sched,1,3, 0); // from, to, flow_id

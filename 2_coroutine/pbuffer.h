@@ -22,6 +22,7 @@ typedef struct {
    SCHED* sched;
    void (* out)(void* , packet*);
    void *typex;
+   int tupdate; // time between calculations of pbucket and cbucket
 } TRTCM;
 
 void box_init(BOX* self, SCHED* sched);

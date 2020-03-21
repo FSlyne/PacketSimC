@@ -242,6 +242,7 @@ void sched_init(SCHED* self, int finish){
     self->en_t=(struct tbuffer *) NULL;
     self->init=0;
     self->ider=0;
+    self->debug=0;
 }
 
 SCHED* sched_create(int finish){
