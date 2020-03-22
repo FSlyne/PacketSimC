@@ -4,6 +4,7 @@
 typedef struct {
    int mean_pkt_size;
    int linerate;
+   SCHED* sched;
 } DIST;
 
 typedef struct {
@@ -15,7 +16,7 @@ typedef struct {
     int flow_id;
     void (* out )(void* , packet*);
     void *typex;
-    int (*arrivalfn)();
+    long (*arrivalfn)();
     void *arrivalfntype;
     jmp_buf flag;
 } PKT;
@@ -29,9 +30,9 @@ typedef struct {
     SCHED* sched;
 } SINK;
 
-void dist_init(DIST* self, int linerate, int mean_pkt_size);
-DIST* dist_create(int linerate, int mean_pkt_size);
-int dist_exec(DIST* self);
+void dist_init(DIST* self, SCHED* sched, int linerate, int mean_pkt_size);
+DIST* dist_create(SCHED* sched, int linerate, int mean_pkt_size);
+long dist_exec(DIST* self);
 void pkt_init(PKT* self, SCHED* sched, int source, int dest, int flow_id);
 PKT* pkt_create(SCHED* sched, int source, int dest, int flow_id);
 void  pkt_gen(PKT* self);

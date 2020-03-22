@@ -5,33 +5,52 @@
 #include "packetgen.h"
 #include <setjmp.h>
 
+#define PI 3.14159265
 
-void dist_init(DIST* self, int linerate, int mean_pkt_size) {
+void dist_init(DIST* self, SCHED* sched, int linerate, int mean_pkt_size) {
     self->linerate=linerate*1000000;
     self->mean_pkt_size=mean_pkt_size;
+    self->sched=sched;
 }
 
-DIST* dist_create(int linerate, int mean_pkt_size) {
+DIST* dist_create(SCHED* sched, int linerate, int mean_pkt_size) {
     time_t t;
     srand((unsigned) time(&t));
     DIST* obj=(DIST*) malloc(sizeof(DIST));
-    dist_init(obj, linerate, mean_pkt_size);
+    dist_init(obj, sched, linerate, mean_pkt_size);
     return obj;
 }
 
+long modulated_linerate(DIST* self, int freq) {
+   int high, low, modulated_linerate;
+   float angle;
+   int amp, trans, gran, maxtime;
+   
+   low=self->linerate/5; high=self->linerate;
+   maxtime=self->sched->finish;
+   gran=1000000;
+   amp=(high-low)/2;
+   trans=(high+low)/2;
 
-int dist_exec(DIST* self) {
+   float m = (float) self->sched->now/gran;
+   angle= m*2*PI*freq;
+   modulated_linerate=trans+amp*sin(angle);
+   // printf("#%ld, %d, %f %f\n", self->sched->now, modulated_linerate, angle, sin(angle));
+   return modulated_linerate;
+}
+
+
+long dist_exec(DIST* self) {
    int pps;
+   // pps=modulated_linerate(self,5)/(8*self->mean_pkt_size); // modulated by sine function
    pps=self->linerate/(8*self->mean_pkt_size);
    // https://preshing.com/20111007/how-to-generate-random-timings-for-a-poisson-process/
    // https://www.codecogs.com/library/computing/c/math.h/log.php?alias=logf
    // https://stackoverflow.com/questions/34558230/generating-random-numbers-of-exponential-distribution
    // int interval= -(logf(1.0f - (float) rand() / (RAND_MAX + 1))/pps)*1000000; // Microseconds between end of one packet and start of next
-   //printf("interval =%d\n", interval);
    double u = rand() / (RAND_MAX + 1.0);
-   int interval = -(log(1.0f - (float) u)/pps)*1000000;
+   long interval = -(log(1.0f - (float) u)/pps)*1000000;
    // interval+=self->linerate/(self->mean_pkt_size*8); // adjust to include transmission time of packet itself
-   // printf("interval =%d\n", interval);
    return interval; 
 }
 

@@ -64,7 +64,7 @@ void task_rpop(struct tbuffer **st, struct tbuffer **en,  void **typex, void (**
 }
 
 
-void sched_insert(struct sbuffer **st, struct sbuffer **en,  jmp_buf flag, int key, int id )
+void sched_insert(struct sbuffer **st, struct sbuffer **en,  jmp_buf flag, long key, int id )
 {
     struct sbuffer *newnode;
     struct sbuffer *idx, *tmp;
@@ -116,7 +116,7 @@ void sched_insert(struct sbuffer **st, struct sbuffer **en,  jmp_buf flag, int k
     return;
 }
 
-void sched_rpush(struct sbuffer **st, struct sbuffer **en,  jmp_buf flag, int key, int id )
+void sched_rpush(struct sbuffer **st, struct sbuffer **en,  jmp_buf flag, long key, int id )
 {
     struct sbuffer *newnode;
     newnode = (struct sbuffer *)malloc(sizeof(struct sbuffer));
@@ -141,7 +141,7 @@ void sched_rpush(struct sbuffer **st, struct sbuffer **en,  jmp_buf flag, int ke
  
 }
 
-void sched_lpush(struct sbuffer **st, struct sbuffer **en,  jmp_buf flag, int key, int id )
+void sched_lpush(struct sbuffer **st, struct sbuffer **en,  jmp_buf flag, long key, int id )
 {
     struct sbuffer *newnode;
     newnode = (struct sbuffer *)malloc(sizeof(struct sbuffer));
@@ -167,7 +167,7 @@ void sched_lpush(struct sbuffer **st, struct sbuffer **en,  jmp_buf flag, int ke
 }
 
 
-void sched_rpop(struct sbuffer **st, struct sbuffer **en,  jmp_buf *flag, int *key, int *id)
+void sched_rpop(struct sbuffer **st, struct sbuffer **en,  jmp_buf *flag, long *key, int *id)
 {
     struct sbuffer *top;
 
@@ -254,7 +254,7 @@ SCHED* sched_create(int finish){
 
 
 // https://codeforwin.org/2017/12/pass-function-pointer-as-parameter-another-function-c.html
-void spawn(SCHED* self, void (func_ptr()), void *typex, int then){
+void spawn(SCHED* self, void (func_ptr()), void *typex, long then){
    task_lpush(&(self->st_t),&(self->en_t), typex, func_ptr);
    // key is given in seconds when called externally, so needs to be converted to microseconds
    // sched_insert(&(self->st),&(self->en), typex, func_ptr, then ,0);
@@ -265,7 +265,7 @@ void spawn(SCHED* self, void (func_ptr()), void *typex, int then){
 //   sched_insert(&(self->st),&(self->en), typex, func_ptr, then ,1);
 //}
 
-void sched_yield(SCHED* self, jmp_buf flag, int then) {
+void sched_yield(SCHED* self, jmp_buf flag, long then) {
    //printf("Inserting process %d\n", self->ider); 
    sched_insert(&(self->st),&(self->en), flag, then, self->ider++);
    if (self->st_t != NULL) { // starts execution of all processes
@@ -276,7 +276,7 @@ void sched_yield(SCHED* self, jmp_buf flag, int then) {
    }
  
    // handles yields from processes in executions
-   int now; int id2;
+   long now; int id2;
    jmp_buf flag2;
    if  (self->st != NULL)  {
       sched_rpop(&(self->st), &(self->en), &flag2, &now, &id2);
@@ -304,14 +304,14 @@ void sched_run(SCHED* self) {
    // If scheduler gets this far, there are either no processes, or the first process has stopped.
 }
 
-void waitfor(SCHED* self, int n) {
+void waitfor(SCHED* self, long n) {
    jmp_buf flag;
    if (setjmp(flag) == 0) {
       sched_yield(self, flag, self->now+n);
    } 
 }
 
-void waituntil(SCHED* self, int n) {
+void waituntil(SCHED* self, long n) {
    jmp_buf flag;
    if (setjmp(flag) == 0) {
       sched_yield(self, flag, n);
