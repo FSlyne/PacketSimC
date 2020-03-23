@@ -18,6 +18,8 @@ typedef struct {
    int cbs;
    int pbucket;
    int cbucket;
+   int pbucket_min;
+   int cbucket_min;
    int last_time;
    SCHED* sched;
    void (* out)(void* , packet*);

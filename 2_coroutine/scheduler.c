@@ -265,10 +265,11 @@ void spawn(SCHED* self, void (func_ptr()), void *typex, long then){
 //   sched_insert(&(self->st),&(self->en), typex, func_ptr, then ,1);
 //}
 
+// Coroutines and Discrete Event Simulations, High Level. "Pragmatic Language Pragmatics. P.433. Michael L. Scott"
 void sched_yield(SCHED* self, jmp_buf flag, long then) {
    //printf("Inserting process %d\n", self->ider); 
    sched_insert(&(self->st),&(self->en), flag, then, self->ider++);
-   if (self->st_t != NULL) { // starts execution of all processes
+   if (self->st_t != NULL) { // starts execution of all processes, apart from first run by sched_run()
       void *typex;
       void (*func_ptr)();
       task_rpop(&(self->st_t), &(self->en_t), &typex, &func_ptr);
@@ -317,23 +318,5 @@ void waituntil(SCHED* self, long n) {
       sched_yield(self, flag, n);
    }
 }
-
-
-//void sched_run(SCHED* self) {
-//    int now;
-//    while (self->now <= self->finish*pow(10,6)) {
-//        jmp_buf flag;
-//        sched_rpop(&(self->st), &(self->en), &flag, &now);
-//        if  (flag == NULL) continue;
-//        longjmp(flag,1);
-//        self->now=now;     
-//        if (self->now == 0) {
-//            printf("Simulation Clock zero limit\n");
-//        }
-//    }
-//    printf("Finished !!\n");
-//    return;
-//}
-
 
 

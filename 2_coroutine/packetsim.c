@@ -17,13 +17,14 @@
  * Copyright 2020 Frank Slyne, Marco Ruffini. Trinity College Dublin.
  * Released under MIT licence.
  *
- * To Do: Nanosecond clock, interrupts, signals, FSM, debug flags
+ * To Do, Benchmarks: DualQ AQM
+ * To Do, Features: Nanosecond clock, interrupts, signals, FSM, debug flags
  */
 
 
 int main() {
    
-    int scenario = 1;
+    int scenario = 8;
     if (scenario == 1) { // (PKT+DIST, PKT+DIST) -> NULL BOX -> SINK
          printf("(PKT+DIST, PKT+DIST) -> NULL BOX -> SINK\n");
          SCHED* sched=sched_create(10); // seconds
