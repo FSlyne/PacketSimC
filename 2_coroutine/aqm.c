@@ -123,17 +123,17 @@ void wred_put(WRED* self, packet* p){
 
  //PIE
  //https://www.scss.tcd.ie/publications/theses/diss/2017/TCD-SCSS-DISSERTATION-2017-046.pdf
-
+ // https://tools.ietf.org/html/draft-ietf-aqm-pie-10
 void pie_init(PIE* self, SCHED* sched, STORE* store, int linerate, int countlimit, int bytelimit) {
    self->sched=sched;
    self->store=store;
    self->linerate=linerate;
    self->countlimit = countlimit;
    self->bytelimit = bytelimit;
-   self->target=15900; // us, PI AQM Classic queue delay targets
-   self->tupdate=16000; // us, PI Classic queue sampling interval
-   self->alpha=10.0; // Hz^2, PI integral gain
-   self->beta=100.0; // Hz^2, PI proportional gain
+   self->target=20000; // us,  queue delay targets
+   self->tupdate=15000; // us, queue sampling interval, section 13
+   self->alpha= 3; // Hz^2, PI integral gain, section 13 says 0.125
+   self->beta= 3; // Hz^2, PI proportional gain, section 13 says 1.25
    self->p=0;
    self->cqdelay=0;
    self->pqdelay=0;
@@ -159,9 +159,33 @@ void pie_destroy(PIE* self){
 void pie_timer(PIE* self) { // pie update timer
    int stackspace[20000] ; stackspace[3]=45;
    while (0<1) {
-      self->p = (self->alpha*(self->cqdelay - self->target) + self->beta *(self->cqdelay - self->pqdelay))/1000000;
-      printf("%ld\t%f\t%d\t%d\t%d\t%d\t%d\n", self->sched->now, self->p,self->alpha,self->beta,self->target, self->cqdelay, self->pqdelay);
-      self->pqdelay=self->cqdelay;
+      // Section 4.2. Drop probabilty calculations
+      float p = (float) (self->alpha*(self->cqdelay - self->target) + self->beta *(self->cqdelay - self->pqdelay))/1000000;
+      if (self->p < 0.000001) {
+         p/=2048;
+      } else if (self->p < 0.00001) {
+         p/=512;
+      } else if (self->p <0.0001) {
+         p/=128;
+      } else if (self->p < 0.001) {
+         p/=32;
+      } else if (self->p < 0.01) {
+         p/=8;
+      } else if (self->p < 0.1) {
+         p/=2;
+      } else {
+         p=p;
+      }
+      self->p +=p;
+      if (self->cqdelay == 0 && self->pqdelay == 0) {
+         self->p *= 0.98;
+       }
+       
+       if (self->p < 0) self->p =0;
+       if (self->p > 1) self->p =1;
+      
+       printf("%ld\t%f\t%d\t%f\t%f\t%d\t%d\n", self->sched->now, self->p,self->alpha,self->beta,self->target, self->cqdelay, self->pqdelay);
+       self->pqdelay=self->cqdelay;
       waitfor(self->sched, self->tupdate );
    }
 }
@@ -173,9 +197,13 @@ void pie_gen(PIE* self) {
     spawn(self->sched, pie_timer, self, 0); // spawn the pie timer subprocess
     while (self->sched->now <= self->sched->finish*1000000) {
       store_rpop_block(self->store, &p, &key);
-      self->cqdelay=self->sched->now - p->enqueue_time;
+      self->cqdelay=self->sched->now - p->enqueue_time; // S4.3 latency calculation refers to Littles Law
       self->countsize--;
       self->bytesize-=p->size;
+      int interval=p->size*8/self->linerate;
+      self->myclock=(self->myclock>self->sched->now)?self->myclock:self->sched->now;
+      self->myclock+=interval; // microseconds
+      waituntil(self->sched,self->myclock);
       //waituntil(self->sched,self->sched->now); // what is the queue handling delay required here
       //printf("%ld returning from scheduler %d\n", self->sched->now, p->flow_id);
       self->out(self->typex, p);
@@ -185,24 +213,29 @@ void pie_gen(PIE* self) {
 void pie_put(PIE* self, packet* p) {
    if (self->countlimit>0) {
       if (self->countsize >= self->countlimit) {
-         printf("PIE Dropping packet - count limit\n");
+         if (self->sched->debug > 0) printf("PIE Dropping packet - count limit\n");
          packet_destroy(p);
          return;
       }
     }
     if (self->bytelimit>0) {
       if (self->bytesize >= self->bytelimit) {
-         printf("PIE Dropping packet - byte limit\n");
+         if (self->sched->debug > 0) printf("PIE Dropping packet - byte limit\n");
          packet_destroy(p);
          return;
       } 
     }
+    // Section 4.1 Random Dropping
    float n = rand_0_1();
-   if (self->p > n) {
-      printf("PIE Dropping packet - AQM limit\n");
+   if ((self->pqdelay < self->target && self->p < 0.2) ||
+            (self->countsize<10) ) {
+      goto ENQUEUE;
+   } else if (self->p > n) {
+      if (self->sched->debug > 0) printf("PIE Dropping packet - AQM limit\n");
       packet_destroy(p);
       return;
    }
+   ENQUEUE:
    self->countsize++;
    self->bytesize+=p->size;
    int interval=p->size*8/self->linerate;

@@ -19,12 +19,13 @@
  *
  * To Do, Benchmarks: DualQ AQM
  * To Do, Features: Nanosecond clock, interrupts, signals, FSM, debug flags
+ * To Do, Erlang calculation
  */
 
 
 int main() {
    
-    int scenario = 8;
+    int scenario = 7;
     if (scenario == 1) { // (PKT+DIST, PKT+DIST) -> NULL BOX -> SINK
          printf("(PKT+DIST, PKT+DIST) -> NULL BOX -> SINK\n");
          SCHED* sched=sched_create(10); // seconds

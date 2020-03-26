@@ -32,8 +32,8 @@ typedef struct {
    int target;
    int tupdate;
    int tupdate_last;
-   int alpha;
-   int beta;
+   float alpha;
+   float beta;
    float p;
    int cqdelay;
    int pqdelay;

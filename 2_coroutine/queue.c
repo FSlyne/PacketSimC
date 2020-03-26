@@ -60,14 +60,14 @@ void queue_put(QUEUE* self, packet* p){
    //printf("Queue size %d %d\n", self->countsize, self->bytesize);
    if (self->countlimit>0) {
       if (self->countsize >= self->countlimit) {
-         //printf("QUEUE Dropping packet - count limit\n");
+         if (self->sched->debug > 0) printf("QUEUE Dropping packet - count limit\n");
          packet_destroy(p);
          return;
       }
     }
     if (self->bytelimit>0) {
       if (self->bytesize >= self->bytelimit) {
-         //printf("QUEUE Dropping packet - byte limit\n");
+         if (self->sched->debug > 0) printf("QUEUE Dropping packet - byte limit\n");
          packet_destroy(p);
          return;
       } 
