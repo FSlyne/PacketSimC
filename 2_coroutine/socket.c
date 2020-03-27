@@ -31,7 +31,6 @@ void socket_destroy(SOCKET* self){
 }
 
 unsigned int socket_select(SOCKET* self) {
-    int i;
     unsigned int omask = 0;
     while (0<1) {
         omask = 0;

@@ -184,7 +184,7 @@ void pie_timer(PIE* self) { // pie update timer
        if (self->p < 0) self->p =0;
        if (self->p > 1) self->p =1;
       
-       printf("%ld\t%f\t%d\t%f\t%f\t%d\t%d\n", self->sched->now, self->p,self->alpha,self->beta,self->target, self->cqdelay, self->pqdelay);
+       printf("%ld\t%f\t%f\t%f\t%d\t%d\t%d\n", self->sched->now, self->p,self->alpha,self->beta,self->target, self->cqdelay, self->pqdelay);
        self->pqdelay=self->cqdelay;
       waitfor(self->sched, self->tupdate );
    }

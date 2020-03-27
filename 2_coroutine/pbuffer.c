@@ -68,7 +68,7 @@ void trtcm_put(TRTCM* self, packet* p){
       if (self->cbucket > self->cbs) self->cbucket=self->cbs;
       //
       if (self->sched->debug > 0)
-         printf("%d %d %d %d\n", self->sched->now, time_inc, self->pbucket, self->cbucket);
+         printf("%ld %d %d %d\n", self->sched->now, time_inc, self->pbucket, self->cbucket);
    } else {
       self->pbucket_min=min(self->pbucket_min, self->pbucket);
       self->cbucket_min=min(self->cbucket_min, self->cbucket);      

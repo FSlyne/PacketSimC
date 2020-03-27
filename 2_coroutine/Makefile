@@ -1,7 +1,7 @@
 # http://www.cs.colby.edu/maxwell/courses/tutorials/maketutor/
 
 CC=gcc
-CFLAGS=-Wall  -std=c99 -g -Wno-unused-variable
+CFLAGS=-Wall  -std=c99 -g -Wno-unused-but-set-variable
 LDFLAGS=-lm
 DEPS=
 

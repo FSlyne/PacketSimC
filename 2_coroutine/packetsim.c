@@ -25,7 +25,7 @@
 
 int main() {
    
-    int scenario = 8;
+    int scenario = 9;
     if (scenario == 1) { // (PKT+DIST, PKT+DIST) -> NULL BOX -> SINK
          printf("(PKT+DIST, PKT+DIST) -> NULL BOX -> SINK\n");
          SCHED* sched=sched_create(10); // seconds
@@ -69,8 +69,8 @@ int main() {
          
          pkt_stats(pkt1);
          sink_stats(sink);  
-    } else if (scenario == 3) { // Single queue. PKT+DIST -> QUEUE-> SINK
-         printf("Single queue. PKT+DIST -> QUEUE-> SINK\n");
+    } else if (scenario == 3) { // Multiple queue. PKT+DIST -> QUEUE-> SINK
+         printf("Multiple queue. PKT+DIST -> QUEUE-> SINK\n");
          SCHED* sched=sched_create(10); // seconds
          PKT* pkt1=pkt_create(sched,1,10, 1); // from, to, flow_id
          PKT* pkt2=pkt_create(sched,2,10, 2); // from, to, flow_id
