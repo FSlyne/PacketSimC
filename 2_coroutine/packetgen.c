@@ -108,7 +108,7 @@ SINK* sink_create(SCHED* sched) {
 void sink_put(SINK* self, packet *p) {
     int n = p->flow_id;
     if (n>=9) n=9;
-    // printf("s: %d %d %d %d %d\n", self->sched->now, (self->sched->now-p->create_time), p->id, p->source, p->dest);
+    // printf("s: %d %d >%d %d %d\n", self->sched->now, (self->sched->now-p->create_time), p->id, p->source, p->dest);
     self->pkt_rcvd[n]++;
     self->bytes_rcvd[n]+=p->size;
     self->delay_cumul[n]+=(self->sched->now-p->create_time);

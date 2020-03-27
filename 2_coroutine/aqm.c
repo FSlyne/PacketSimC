@@ -264,6 +264,7 @@ void dualq_init(DUALQ* self, SCHED* sched, STORE* store, int linerate, int count
    self->packets_LPrec = 0;
    self->packets_LPdrop = 0;
    self->maxqlen=0;
+   self->myclock=0;
    //
    self->MTU=1500;
    self->MAX_LINK_RATE=linerate;
@@ -294,9 +295,8 @@ void dualq_init(DUALQ* self, SCHED* sched, STORE* store, int linerate, int count
    }
    self->maxTh = self->minTh+self->range; // L4S min marking threshold in time units
    self->p=0;
-   self->cqdelay=0;
-   self->lqdelay=0;
-   self->prevq=0; self->curq=0;
+   self->cqdelay=0.0;
+   self->lqdelay=0.0;
    self->vtime=0;
    self->tupdate_last=0;
 }
@@ -319,25 +319,26 @@ int dualq_laqm(DUALQ* self) {
    }
 }
 
-int dualq_update(DUALQ* self) {
-   self->curq=self->cqdelay; // ms
-   self->p = self->p + self->alpha_U * (self->curq - self->target) + self->beta_U * (self->curq - self->prevq);
-   self->p_CL = self->p * self->k; // Coupled L4S prob = base prob * coupling factor
-   self->p_C = self->p^2; // Classic prob = (base prob)^2
-   self->prevq=self->curq;
-   return self->sched->now+self->tupdate;
-}
+//int dualq_update(DUALQ* self) {
+//   self->curq=self->cqdelay; // ms
+//   self->p = self->p + self->alpha_U * (self->curq - self->target) + self->beta_U * (self->curq - self->prevq);
+//   self->p_CL = self->p * self->k; // Coupled L4S prob = base prob * coupling factor
+//   self->p_C = self->p^2; // Classic prob = (base prob)^2
+//   self->prevq=self->curq;
+//   return self->sched->now+self->tupdate;
+//}
 
 void dualq_timer(DUALQ* self) { // dualq update timer
    int stackspace[20000] ; stackspace[3]=45;
    while (0<1) {
-      self->curq=self->cqdelay; // ms
-      self->p = self->p + self->alpha_U * (self->curq - self->target) + self->beta_U * (self->curq - self->prevq);
+      self->p = self->p + (float) (self->alpha_U * (self->cqdelay - self->target) + self->beta_U * (self->cqdelay - self->pqdelay))/1000000;
+      if (self->p < 0) self->p =0;
+      if (self->p > 1) self->p =1;
       self->p_CL = self->p * self->k; // Coupled L4S prob = base prob * coupling factor
-      self->p_C = self->p^2; // Classic prob = (base prob)^2
-      self->prevq=self->curq;
-      printf("%ld\t%d\t%d\t%d\t%d\t%d\t%d\n",
-             self->sched->now, self->p,self->alpha_U,self->beta_U,self->target, self->curq, self->prevq);
+      self->p_C = (self->p)*(self->p); // Classic prob = (base prob)^2
+      printf("%ld\t%f\t%f\t%f\t%d\t%d\t%d\n",
+             self->sched->now, self->p,self->alpha_U,self->beta_U,self->target, self->cqdelay, self->pqdelay);
+      self->pqdelay=self->cqdelay;
       waitfor(self->sched, self->tupdate );
    }
 }
@@ -348,6 +349,7 @@ void dualq_gen(DUALQ* self) {
     int key;
     spawn(self->sched, dualq_timer, self, 0); // spawn the dualq timer subprocess
     while (self->sched->now <= self->sched->finish*1000000) {
+      // self->pqdelay=self->cqdelay;
          store_rpop_block(self->store, &p, &key);
          if (p->flow_id == 0) {
             self->lqdelay=(self->sched->now-p->create_time);
@@ -355,12 +357,16 @@ void dualq_gen(DUALQ* self) {
             self->p_L=max(pdash_L,self->p_CL);
             self->llpktcount--;
          } else {
-            self->cqdelay=(self->sched->now-p->create_time);
+            self->cqdelay= self->sched->now-p->create_time;
             self->clpktcount--;
          }
          self->llpktcount=max(0,self->llpktcount);
          self->clpktcount=max(0,self->clpktcount);
-      waituntil(self->sched,self->sched->now); // what is the queue handline delay here
+      int interval=p->size*8000000/self->linerate;
+      //printf("interval: %d\n", interval);
+      self->myclock=(self->myclock>self->sched->now)?self->myclock:self->sched->now;
+      self->myclock+=interval; // microseconds
+      waituntil(self->sched,self->myclock); // what is the queue handline delay here
       //printf("%ld returning from scheduler %d\n", self->sched->now, p->flow_id);
       self->out(self->typex, p);
     }
@@ -381,12 +387,13 @@ void dualq_put(DUALQ* self, packet* p) {
    } else {// 1 => lesser priority
       self->packets_LPrec++;
       float n = rand_0_1();
+      // printf("%.3f %.3f %.3f\n", n, self->p_C, self->p_Cmax);
       if (self->p_C > n || self->p_C > self->p_Cmax) {
          self->packets_LPdrop++;
-         //printf("Dropping\n");
+         // printf("Dropping\n");
          return;
       } else {
-         //printf("Queuing Classic\n");
+         // printf("Queuing Classic\n");
          self->packets_LPrec++;
          self->clpktcount++;        
          //int interval=p->size*8/self->linerate;

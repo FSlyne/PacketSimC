@@ -66,12 +66,12 @@ typedef struct {
    int target; // ms, PI AQM Classic queue delay targets
    int tupdate; // ms, PI Classic queue sampling interval
    int tupdate_last;
-   int alpha; // Hz^2, PI integral gain
-   int beta; // Hz^2, PI proportional gain
-   int p_Cmax;
+   float alpha; // Hz^2, PI integral gain
+   float beta; // Hz^2, PI proportional gain
+   float p_Cmax;
    // Constants derived from PI2 AQM parameters
-   int alpha_U; // PI integral gain per update interval
-   int beta_U;  // PI prop.nal gain per update interval
+   float alpha_U; // PI integral gain per update interval
+   float beta_U;  // PI prop.nal gain per update interval
    // DualQ Coupled framework parameters
    int k; // Coupling factor
    // scheduler weight or equival.t parameter (scheduler-dependent)
@@ -81,17 +81,17 @@ typedef struct {
    int range; // us Range of L4S ramp in time units
    int Th_len; // Min L4S marking threshold in bytes
    // Constants derived from L4S AQM parameters
-   int p_Lmax; // Max L4S marking prob
+   float p_Lmax; // Max L4S marking prob
    int floor; // MIN_LINK_RATE is in Mb/s
    int maxTh; // L4S min marking threshold in time units
-   int p;
+   float p;
    int cqdelay;
+   int pqdelay;
    int lqdelay;
-   int prevq; 
-   int curq;
    int vtime;
    float p_C; float p_CL;
    float p_L;
+   int myclock;
 } DUALQ;
 
 

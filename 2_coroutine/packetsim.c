@@ -17,7 +17,7 @@
  * Copyright 2020 Frank Slyne, Marco Ruffini. Trinity College Dublin.
  * Released under MIT licence.
  *
- * To Do, Benchmarks: DualQ AQM
+ * To Do, Benchmarks: DualQ AQM 
  * To Do, Features: Nanosecond clock, interrupts, signals, FSM, debug flags
  * To Do, Erlang calculation
  */
@@ -25,7 +25,7 @@
 
 int main() {
    
-    int scenario = 7;
+    int scenario = 8;
     if (scenario == 1) { // (PKT+DIST, PKT+DIST) -> NULL BOX -> SINK
          printf("(PKT+DIST, PKT+DIST) -> NULL BOX -> SINK\n");
          SCHED* sched=sched_create(10); // seconds
@@ -191,7 +191,7 @@ int main() {
      //    QUEUE* queue1=queue_create(sched);
          SINK* sink=sink_create(sched);
     
-         DUALQ* dualq=dualq_create(sched,20, 0, 0);
+         DUALQ* dualq=dualq_create(sched,15, 0, 0);
       
          pkt1->out=(void *)dualq_put; pkt1->typex=dualq; pkt1->arrivalfn=dist_exec; pkt1->arrivalfntype=distfunc;
          pkt2->out=(void *)dualq_put; pkt2->typex=dualq; pkt2->arrivalfn=dist_exec; pkt2->arrivalfntype=distfunc;
