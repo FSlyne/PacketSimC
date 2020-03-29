@@ -41,7 +41,7 @@ void  queue_gen(QUEUE* self) {
     }
     packet* p;
     int key;
-    while (self->sched->now <= self->sched->finish*1000000) {
+    while (self->sched->running > 0) {
          store_rpop_block(self->store, &p, &key);
          self->countsize--;
          self->bytesize-=p->size;
@@ -49,7 +49,6 @@ void  queue_gen(QUEUE* self) {
          self->myclock=(self->myclock>self->sched->now)?self->myclock:self->sched->now;
          self->myclock+=interval; // microseconds
          // postprocess
-         // Need to replicate self.out.put(p) functionality
          waituntil(self->sched,self->myclock+self->latency);
          // printf("%ld returning from scheduler %d\n", self->sched->now, p->flow_id);
          self->out(self->typex, p);

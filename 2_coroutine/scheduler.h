@@ -15,7 +15,7 @@ struct sbuffer
 };
 
 typedef struct {
-    int init;
+    int running;
     long now;
     int finish;
     struct sbuffer *st;
@@ -25,6 +25,10 @@ typedef struct {
     jmp_buf token;
     int ider;
     int debug;
+    long granularity;
+    long msec;
+    long usec;
+    long sec;
 } SCHED;
 
 struct tbuffer

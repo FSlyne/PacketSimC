@@ -17,15 +17,16 @@
  * Copyright 2020 Frank Slyne, Marco Ruffini. Trinity College Dublin.
  * Released under MIT licence.
  *
+ * To Do, immediate AQM and the Low-Latency Policer, as specified for DOCSIS low-latency standards
  * To Do, Benchmarks: DualQ AQM 
  * To Do, Features: Nanosecond clock, interrupts, signals, FSM, debug flags
- * To Do, Erlang calculation
+ * To Do, Erlang calculation, virtual clock
  */
 
 
 int main() {
    
-    int scenario = 9;
+    int scenario = 1;
     if (scenario == 1) { // (PKT+DIST, PKT+DIST) -> NULL BOX -> SINK
          printf("(PKT+DIST, PKT+DIST) -> NULL BOX -> SINK\n");
          SCHED* sched=sched_create(10); // seconds
@@ -128,10 +129,10 @@ int main() {
          sink_stats(sink);
     }  else if (scenario == 5) { //  PKT+DIST -> TRTCM  -> SINK
          printf("PKT+DIST -> TRTCM  -> SINK\n");
-         int linerate=200;
-         int cir=linerate*1000000/2;
-         int pir=cir*2;
          SCHED* sched=sched_create(10); // seconds
+         int linerate=200;
+         int cir=linerate*sched->granularity/2;
+         int pir=cir*2;
          PKT* pkt1=pkt_create(sched,1,3, 1); // from, to, flow_id
          DIST* distfunc=dist_create(sched, linerate,1000); // Transmission (Mbps), Mean Packet size (Bytes)
          SINK* sink=sink_create(sched);

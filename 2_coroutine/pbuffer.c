@@ -60,10 +60,10 @@ void trtcm_put(TRTCM* self, packet* p){
    float tmp;
    if (time_inc > self->tupdate) { // update pbucket and cbucket at longer intervals
       self->last_time=self->sched->now;
-      tmp = (self->pir/8000000)*time_inc;
+      tmp = (self->pir/(8*self->sched->granularity))*time_inc;
       self->pbucket+=tmp; // rate in bits, bucket in bytes
       if (self->pbucket > self->pbs) self->pbucket=self->pbs;
-      tmp = (self->cir/8000000)*time_inc;
+      tmp = (self->cir/(8*self->sched->granularity))*time_inc;
       self->cbucket+=tmp; // rate in bits, bucket in bytes
       if (self->cbucket > self->cbs) self->cbucket=self->cbs;
       //

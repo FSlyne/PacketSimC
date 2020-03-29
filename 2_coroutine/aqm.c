@@ -78,7 +78,7 @@ void  wred_gen(WRED* self) {
     int stackspace[20000] ; stackspace[3]=45;
     packet* p;
     int key;
-    while (self->sched->now <= self->sched->finish*1000000) {
+    while (self->sched->running > 0) {
          store_rpop_block(self->store, &p, &key);
          self->countsize--;
          self->bytesize-=p->size;
@@ -122,16 +122,15 @@ void wred_put(WRED* self, packet* p){
 }
 
  //PIE
- //https://www.scss.tcd.ie/publications/theses/diss/2017/TCD-SCSS-DISSERTATION-2017-046.pdf
- // https://tools.ietf.org/html/draft-ietf-aqm-pie-10
+ // https://tools.ietf.org/pdf/rfc8033.pdf. Feb 2017
 void pie_init(PIE* self, SCHED* sched, STORE* store, int linerate, int countlimit, int bytelimit) {
    self->sched=sched;
    self->store=store;
    self->linerate=linerate;
    self->countlimit = countlimit;
    self->bytelimit = bytelimit;
-   self->target=20000; // us,  queue delay targets
-   self->tupdate=15000; // us, queue sampling interval, section 13
+   self->target=20000*self->sched->usec; // us,  queue delay targets
+   self->tupdate=15000*self->sched->usec; // us, queue sampling interval, section 13
    self->alpha= 3; // Hz^2, PI integral gain, section 13 says 0.125
    self->beta= 3; // Hz^2, PI proportional gain, section 13 says 1.25
    self->p=0;
@@ -160,7 +159,7 @@ void pie_timer(PIE* self) { // pie update timer
    int stackspace[20000] ; stackspace[3]=45;
    while (0<1) {
       // Section 4.2. Drop probabilty calculations
-      float p = (float) (self->alpha*(self->cqdelay - self->target) + self->beta *(self->cqdelay - self->pqdelay))/1000000;
+      float p = (float) (self->alpha*(self->cqdelay - self->target) + self->beta *(self->cqdelay - self->pqdelay))/self->sched->granularity;
       if (self->p < 0.000001) {
          p/=2048;
       } else if (self->p < 0.00001) {
@@ -195,7 +194,7 @@ void pie_gen(PIE* self) {
     packet* p;
     int key;
     spawn(self->sched, pie_timer, self, 0); // spawn the pie timer subprocess
-    while (self->sched->now <= self->sched->finish*1000000) {
+    while (self->sched->running > 0) {
       store_rpop_block(self->store, &p, &key);
       self->cqdelay=self->sched->now - p->enqueue_time; // S4.3 latency calculation refers to Littles Law
       self->countsize--;
@@ -250,7 +249,7 @@ void pie_put(PIE* self, packet* p) {
 void dualq_init(DUALQ* self, SCHED* sched, STORE* store, int linerate, int countlimit, int bytelimit){
    self->sched=sched;
    self->store=store;
-   self->linerate=linerate*1000000;
+   self->linerate=linerate*self->sched->granularity;
    self->packets_rec=0;
    self->packets_drop=0;
    self->countlimit = countlimit;
@@ -269,8 +268,8 @@ void dualq_init(DUALQ* self, SCHED* sched, STORE* store, int linerate, int count
    self->MTU=1500;
    self->MAX_LINK_RATE=linerate;
    self->MIN_LINK_RATE=linerate/10;
-   self->target=15900; // us, PI AQM Classic queue delay targets
-   self->tupdate=16000; // us, PI Classic queue sampling interval
+   self->target=15900*self->sched->usec; // us, PI AQM Classic queue delay targets
+   self->tupdate=16000*self->sched->usec; // us, PI Classic queue sampling interval
    self->alpha=10.0; // Hz^2, PI integral gain
    self->beta=100.0; // Hz^2, PI proportional gain
    self->p_Cmax=0.25;
@@ -282,8 +281,8 @@ void dualq_init(DUALQ* self, SCHED* sched, STORE* store, int linerate, int count
    // scheduler weight or equival.t parameter (scheduler-dependent)
    self->limit = self->MAX_LINK_RATE * 250000; // us Dual buffer size
    // L4S ramp AQM parameters
-   self->minTh = 475.0; // us L4S min marking threshold in time units
-   self->range = 525.0; // us Range of L4S ramp in time units
+   self->minTh = 475.0*self->sched->usec; // us L4S min marking threshold in time units
+   self->range = 525.0*self->sched->usec; // us Range of L4S ramp in time units
    self->Th_len = 2.0 * self->MTU; // Min L4S marking threshold in bytes
    // Constants derived from L4S AQM parameters
    self->p_Lmax = min(self->k*sqrt(self->p_Cmax), 1); // Max L4S marking prob
@@ -309,7 +308,7 @@ DUALQ* dualq_create(SCHED* sched, int linerate, int countlimit, int bytelimit){
     return obj;
 }
 
-int dualq_laqm(DUALQ* self) {
+int dualq_laqm(DUALQ* self) { // is this ProbNative?
    if (self->lqdelay >= self->maxTh) {
       return 1;
    } else if (self->lqdelay > self->minTh) {
@@ -331,7 +330,8 @@ int dualq_laqm(DUALQ* self) {
 void dualq_timer(DUALQ* self) { // dualq update timer
    int stackspace[20000] ; stackspace[3]=45;
    while (0<1) {
-      self->p = self->p + (float) (self->alpha_U * (self->cqdelay - self->target) + self->beta_U * (self->cqdelay - self->pqdelay))/1000000;
+      self->p = self->p + (float) (self->alpha_U * (self->cqdelay - self->target) +
+                                          self->beta_U * (self->cqdelay - self->pqdelay))/self->sched->granularity;
       if (self->p < 0) self->p =0;
       if (self->p > 1) self->p =1;
       self->p_CL = self->p * self->k; // Coupled L4S prob = base prob * coupling factor
@@ -348,7 +348,7 @@ void dualq_gen(DUALQ* self) {
     packet* p;
     int key;
     spawn(self->sched, dualq_timer, self, 0); // spawn the dualq timer subprocess
-    while (self->sched->now <= self->sched->finish*1000000) {
+    while (self->sched->running > 0) {
       // self->pqdelay=self->cqdelay;
          store_rpop_block(self->store, &p, &key);
          if (p->flow_id == 0) {
@@ -362,7 +362,7 @@ void dualq_gen(DUALQ* self) {
          }
          self->llpktcount=max(0,self->llpktcount);
          self->clpktcount=max(0,self->clpktcount);
-      int interval=p->size*8000000/self->linerate;
+      int interval=p->size*8*self->sched->granularity/self->linerate;
       //printf("interval: %d\n", interval);
       self->myclock=(self->myclock>self->sched->now)?self->myclock:self->sched->now;
       self->myclock+=interval; // microseconds

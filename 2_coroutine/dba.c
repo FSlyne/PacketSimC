@@ -249,7 +249,7 @@ void dba_gen(DBA* self) {
     packet* p;
     // Create the frame
     
-    while (self->sched->now <= self->sched->finish*1000000) {
+    while (self->sched->running > 0) {
       tcont_control(self->tcont,400, &st_w, &en_w); // a single TCONT, slots (32 bt words)
       frame_lpush(&(self->st_frame), &(self->en_frame), &st_w, &en_w, 1, 100);
       //

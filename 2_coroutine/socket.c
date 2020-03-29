@@ -47,7 +47,7 @@ void  socket_gen(SOCKET* self) {
     packet* p;
     int key;
     unsigned int mask = 0;
-    while (self->sched->now <= self->sched->finish*1000000) {
+    while (self->sched->running > 0) {
          mask = socket_select(self); // block if no I/O 
          if (mask & 1) {
             store_rpop(self->store[0], &p, &key);

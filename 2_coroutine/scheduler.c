@@ -240,9 +240,13 @@ void sched_init(SCHED* self, int finish){
     self->en=(struct sbuffer *) NULL;
     self->st_t=(struct tbuffer *) NULL;
     self->en_t=(struct tbuffer *) NULL;
-    self->init=0;
+    self->running=1;
     self->ider=0;
     self->debug=0;
+    self->granularity=1000000;
+    self->usec=1;
+    self->msec=1000;
+    self->sec=1000000;
 }
 
 SCHED* sched_create(int finish){
@@ -267,13 +271,13 @@ void spawn(SCHED* self, void (func_ptr()), void *typex, long then){
 
 // Coroutines and Discrete Event Simulations, High Level. "Pragmatic Language Pragmatics. P.433. Michael L. Scott"
 void sched_yield(SCHED* self, jmp_buf flag, long then) {
-   //printf("Inserting process %d\n", self->ider); 
+   if (self->debug > 0) printf("Inserting process %d\n", self->ider); 
    sched_insert(&(self->st),&(self->en), flag, then, self->ider++);
    if (self->st_t != NULL) { // starts execution of all processes, apart from first run by sched_run()
       void *typex;
       void (*func_ptr)();
       task_rpop(&(self->st_t), &(self->en_t), &typex, &func_ptr);
-      (*func_ptr)(typex);
+      (*func_ptr)(typex); 
    }
  
    // handles yields from processes in executions
@@ -283,13 +287,16 @@ void sched_yield(SCHED* self, jmp_buf flag, long then) {
       sched_rpop(&(self->st), &(self->en), &flag2, &now, &id2);
       //printf(" Popping process %d\n", id2);
       self->now=now;
+      if (self->now >= self->finish*self->granularity)
+        self->running=0; // Simulation finished
       longjmp(flag2,1);
    }
    
-   if (self->now <= self->finish*1000000) {
+   if (self->now <= self->finish*self->granularity) {
       printf("sched_yield: premature exhaustion 1\n");
    }
-   // If scheduler gets this far, it has run out of events 
+   // If scheduler gets this far, it has run out of events
+   self->running=0;
 }
 
 void sched_run(SCHED* self) {
@@ -299,10 +306,11 @@ void sched_run(SCHED* self) {
       task_rpop(&(self->st_t), &(self->en_t), &typex, &func_ptr);
       (*func_ptr)(typex);
    }
-   if (self->now <= self->finish*1000000) {
+   if (self->now <= self->finish*self->granularity) {
       printf("sched_yield: premature exhaustion 2\n");
    }
    // If scheduler gets this far, there are either no processes, or the first process has stopped.
+   self->running=0;
 }
 
 void waitfor(SCHED* self, long n) {

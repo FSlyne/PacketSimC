@@ -8,9 +8,9 @@
 #define PI 3.14159265
 
 void dist_init(DIST* self, SCHED* sched, int linerate, int mean_pkt_size) {
-    self->linerate=linerate*1000000;
     self->mean_pkt_size=mean_pkt_size;
     self->sched=sched;
+    self->linerate=linerate*self->sched->granularity;
 }
 
 DIST* dist_create(SCHED* sched, int linerate, int mean_pkt_size) {
@@ -24,15 +24,14 @@ DIST* dist_create(SCHED* sched, int linerate, int mean_pkt_size) {
 long modulated_linerate(DIST* self, int freq) {
    int high, low, modulated_linerate;
    float angle;
-   int amp, trans, gran, maxtime;
+   int amp, trans, maxtime;
    
    low=self->linerate/5; high=self->linerate;
    maxtime=self->sched->finish;
-   gran=1000000;
    amp=(high-low)/2;
    trans=(high+low)/2;
 
-   float m = (float) self->sched->now/gran;
+   float m = (float) self->sched->now/self->sched->granularity;
    angle= m*2*PI*freq;
    modulated_linerate=trans+amp*sin(angle);
    // printf("#%ld, %d, %f %f\n", self->sched->now, modulated_linerate, angle, sin(angle));
@@ -49,7 +48,7 @@ long dist_exec(DIST* self) {
    // https://stackoverflow.com/questions/34558230/generating-random-numbers-of-exponential-distribution
    // int interval= -(logf(1.0f - (float) rand() / (RAND_MAX + 1))/pps)*1000000; // Microseconds between end of one packet and start of next
    double u = rand() / (RAND_MAX + 1.0);
-   long interval = -(log(1.0f - (float) u)/pps)*1000000;
+   long interval = -(log(1.0f - (float) u)/pps)*self->sched->granularity;
    // interval+=self->linerate/(self->mean_pkt_size*8); // adjust to include transmission time of packet itself
    return interval; 
 }
@@ -71,7 +70,7 @@ PKT* pkt_create(SCHED* sched, int source, int dest, int flow_id) {
 
 void  pkt_gen(PKT* self) {
    int stackspace[200000] ; stackspace[3]=45;
-   while (self->sched->now <= self->sched->finish*1000000) {
+   while (self->sched->running > 0) {
          // preprocess
          //printf("Creating a packet\n");
          packet* p=packet_create((self->pktcnt)++, self->sched->now, self->source, self->dest,self->flow_id,

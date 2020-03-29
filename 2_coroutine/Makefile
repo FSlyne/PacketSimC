@@ -1,6 +1,7 @@
 # http://www.cs.colby.edu/maxwell/courses/tutorials/maketutor/
 
 CC=gcc
+# https://www.avrfreaks.net/forum/avoiding-unused-set-warning
 CFLAGS=-Wall  -std=c99 -g -Wno-unused-but-set-variable
 LDFLAGS=-lm
 DEPS=
