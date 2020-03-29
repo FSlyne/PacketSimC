@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <time.h>
+#include <stdint.h>
 #include "aqm.h"
 
 /* 
@@ -13,6 +14,11 @@
 
 #define min(a,b) (((a)<(b))?(a):(b))
 #define max(a,b) (((a)>(b))?(a):(b))
+
+// http://ctips.pbworks.com/w/page/7277591/FNV%20Hash
+#define FNV_PRIME_32 16777619
+#define FNV_OFFSET_32 2166136261U
+
 
 int rand_drop(int n, int m) {
 // drop m in n
@@ -45,7 +51,6 @@ double rand_0_1(void) // random number betwixt 0 and 1
 }
 
 // WRED AQM
-
 void wred_init(WRED* self, SCHED* sched, STORE* store, int linerate, int countlimit, int bytelimit, int latency){
     self->sched=sched;
     self->store=store;
@@ -244,8 +249,109 @@ void pie_put(PIE* self, packet* p) {
    p->enqueue_time=self->sched->now;
 }
 
-  // DUALQ AQM
+// http://ctips.pbworks.com/w/page/7277591/FNV%20Hash
+uint32_t hash32(packet* p) {
+   uint32_t hash = FNV_OFFSET_32;
+   hash = hash ^ p->source;
+   hash=hash*FNV_PRIME_32;
+   hash = hash ^ p->dest;
+   hash=hash*FNV_PRIME_32;
+   return hash;
+}
 
+// Qprotect
+// https://tools.ietf.org/id/draft-briscoe-docsis-q-protection-00.html
+void qprotect_init(QPROT* self, SCHED* sched){
+   int linerate=10000000;
+   self->sched=sched;
+   //
+   self->MTU=1500;
+   self->MAX_LINK_RATE=linerate;
+   self->MIN_LINK_RATE=linerate/10;
+    // L4S ramp AQM parameters
+   self->minTh = 475.0*self->sched->usec; // us L4S min marking threshold in time units
+   self->range = 525.0*self->sched->usec; // us Range of L4S ramp in time units
+   self->Th_len = 2.0 * self->MTU; // Min L4S marking threshold in bytes
+   // Constants derived from L4S AQM parameters
+   self->floor = self->Th_len * 8.0 / self->MIN_LINK_RATE; // MIN_LINK_RATE is in Mb/s
+   if (self->minTh < self->floor) {
+       // Adjust ramp to exceed serialization time of 2 MTU
+       self->range = max(self->range - (self->floor-self->minTh), 1); // 1us avoids /0 error
+       self->minTh = self->floor;
+   }
+   self->maxTh = self->minTh+self->range; // L4S min marking threshold in time units   
+    self->criticalql_us = self->maxTh/1000; // C.2.2.7.17.8
+    self->criticalql = self->criticalql_us*1000;
+    self->lg_aging = 19; // 2^19 bytes/sec. C.2.2.7.17.10
+    self->aging = pow(2, self->aging-30);  // Convert lg([B/s]) to [B/ns]
+    self->aging_us = self->aging*1000; // B/usec
+    self->criticalqlscore_us = 4000; // C.2.2.7.17.9
+    self->criticalqlscore=self->criticalqlscore_us*1000;
+    self->criticalqlproduct=self->criticalql*self->criticalqlscore;
+    self->criticalqlproduct_us=self->criticalql_us * self->criticalqlscore_us;
+}
+
+    
+QPROT* qprotect_create(SCHED* sched){
+    QPROT* obj=(QPROT*) malloc(sizeof(QPROT));
+    qprotect_init(obj, sched);
+    return obj;
+}
+
+
+void qprotect_destroy(QPROT* self){
+    if (self) {
+        free(self);
+    }
+}
+
+int pick_bucket(QPROT* self, packet* p) {
+   int j;
+   uint32_t h32;
+   int h;
+   h32=hash32(p);
+   int hsav = NBUCKETS;
+   for (j=0; j<ATTEMPTS; j++) {
+      h =  (int) h32 & (int) MASK;
+      if (self->buckets[h].id == h32) {
+         if (self->buckets[h].t_exp < self->sched->now)
+            self->buckets[h].t_exp = self->sched->now;
+         return h;
+      } else if ((hsav == NBUCKETS) && (self->buckets[h].t_exp <= self->sched->now) ) {
+         hsav = h;
+      }
+      h32 >>= BI_SIZE;
+   }
+   if (hsav != NBUCKETS) {
+      self->buckets[hsav].t_exp = self->sched->now;
+   } else {
+      if (self->buckets[hsav].t_exp <= self->sched->now) {
+         self->buckets[hsav].t_exp = self->sched->now;
+      }
+   }
+   self->buckets[hsav].id=h32;
+   return hsav;
+}
+
+long fill_bucket(QPROT* self, int bckt_id, packet* p, float probNative) {
+   self->buckets[bckt_id].t_exp += (probNative * p->size / self->aging);
+   return (self->buckets[bckt_id].t_exp - self->sched->now);
+}
+
+int qprotect(QPROT* self, DUALQ* dualq, packet* p) {
+   int bckt_id;
+   float qLscore;
+   bckt_id=pick_bucket(self, p);
+   float probNative = dualq_laqm(dualq);
+   qLscore=fill_bucket(self, bckt_id, p, probNative);
+   printf("%d %f %f %d %f %f\n", bckt_id, qLscore, probNative, dualq->lqdelay, self->criticalql, self->criticalqlproduct);
+   if ((dualq->lqdelay > self->criticalql) && (dualq->lqdelay * qLscore > self->criticalqlproduct))
+      return 1;
+   else
+      return 0;
+}
+
+  // DUALQ AQM
 void dualq_init(DUALQ* self, SCHED* sched, STORE* store, int linerate, int countlimit, int bytelimit){
    self->sched=sched;
    self->store=store;
@@ -298,6 +404,7 @@ void dualq_init(DUALQ* self, SCHED* sched, STORE* store, int linerate, int count
    self->lqdelay=0.0;
    self->vtime=0;
    self->tupdate_last=0;
+   self->qprot=qprotect_create(sched);
 }
 
 DUALQ* dualq_create(SCHED* sched, int linerate, int countlimit, int bytelimit){
@@ -351,6 +458,12 @@ void dualq_gen(DUALQ* self) {
     while (self->sched->running > 0) {
       // self->pqdelay=self->cqdelay;
          store_rpop_block(self->store, &p, &key);
+         if (p->flow_id == 0) {
+            int redirect = qprotect(self->qprot, self, p);
+            if (redirect > 0) {
+               p->flow_id = 1;  
+            }
+         }
          if (p->flow_id == 0) {
             self->lqdelay=(self->sched->now-p->create_time);
             int pdash_L=dualq_laqm(self);

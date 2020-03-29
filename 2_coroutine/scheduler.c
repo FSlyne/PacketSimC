@@ -243,10 +243,10 @@ void sched_init(SCHED* self, int finish){
     self->running=1;
     self->ider=0;
     self->debug=0;
-    self->granularity=1000000;
-    self->usec=1;
-    self->msec=1000;
-    self->sec=1000000;
+    self->granularity=1000000; // 
+    self->usec=self->granularity/1000000;
+    self->msec=self->usec*1000;
+    self->sec=self->usec*1000000;
 }
 
 SCHED* sched_create(int finish){

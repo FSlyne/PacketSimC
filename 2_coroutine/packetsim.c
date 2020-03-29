@@ -26,7 +26,7 @@
 
 int main() {
    
-    int scenario = 1;
+    int scenario = 8;
     if (scenario == 1) { // (PKT+DIST, PKT+DIST) -> NULL BOX -> SINK
          printf("(PKT+DIST, PKT+DIST) -> NULL BOX -> SINK\n");
          SCHED* sched=sched_create(10); // seconds
@@ -187,8 +187,8 @@ int main() {
          printf("(PKT+DIST, PKT+DIST)  -> DUALQ  -> SINK\n");
          SCHED* sched=sched_create(10); // seconds
          PKT* pkt1=pkt_create(sched,1,3, 0); // from, to, flow_id
-         PKT* pkt2=pkt_create(sched,2,3, 1); // from, to, flow_id
-         DIST* distfunc=dist_create(sched, 10,100); // Transmission (Mbps), Mean Packet size (Bytes)
+         PKT* pkt2=pkt_create(sched,2,3, 0); // from, to, flow_id
+         DIST* distfunc=dist_create(sched, 20,100); // Transmission (Mbps), Mean Packet size (Bytes)
      //    QUEUE* queue1=queue_create(sched);
          SINK* sink=sink_create(sched);
     

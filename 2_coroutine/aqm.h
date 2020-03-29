@@ -2,6 +2,11 @@
 #include "packet.h"
 #include "store.h"
 
+#define ATTEMPTS 2
+#define BI_SIZE 5
+#define NBUCKETS pow(2, BI_SIZE)
+#define MASK (NBUCKETS-1)
+
 typedef struct {
     int status;
     int linerate;
@@ -40,9 +45,39 @@ typedef struct {
    int myclock;
 } PIE;
 
+typedef struct{ // The leaky bucket structure to hold per-flow state
+   int id;   // identifier (e.g. 5-tuple) of the flow using bucket
+   long t_exp; // (t_exp - now) = flow's normalized q'ing score [ns]
+} BUCKET; 
+
+
+typedef struct {
+   SCHED* sched;
+   int MTU;
+   int MAX_LINK_RATE;
+   int MIN_LINK_RATE;
+   // L4S ramp AQM parameters
+   int minTh; // us L4S min marking threshold in time units
+   int Th_len; // Min L4S marking threshold in bytes
+   float aging;
+   int criticalql_us;
+   int criticalql;
+   int lg_aging;
+   float aging_us;
+   int floor; // MIN_LINK_RATE is in Mb/s
+   int maxTh; // L4S min marking threshold in time units
+   int range; // us Range of L4S ramp in time units
+   int criticalqlscore;
+   int criticalqlscore_us;
+   int criticalqlproduct;
+   int criticalqlproduct_us;
+   BUCKET buckets[33];
+} QPROT;
+
 typedef struct {
    SCHED* sched;
    STORE* store;
+   QPROT* qprot;
    void *typex;
    void (* out)(void* , packet*);
    int linerate;
