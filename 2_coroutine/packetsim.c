@@ -10,6 +10,7 @@
 #include "dba.h"
 #include "aqm.h"
 #include "socket.h"
+#include "tcp.h"
 //#include "message.h"
 
 /* 
@@ -21,12 +22,14 @@
  * To Do, Benchmarks: DualQ AQM 
  * To Do, Features: Nanosecond clock, interrupts, signals, FSM, debug flags
  * To Do, Erlang calculation, virtual clock
+ * 
+ * Done: Qprotect, Wred, PIE, DualQ
  */
 
 
 int main() {
    
-    int scenario = 8;
+    int scenario = 10;
     if (scenario == 1) { // (PKT+DIST, PKT+DIST) -> NULL BOX -> SINK
          printf("(PKT+DIST, PKT+DIST) -> NULL BOX -> SINK\n");
          SCHED* sched=sched_create(10); // seconds
@@ -221,6 +224,28 @@ int main() {
         
         spawn(sched, pkt_gen, pkt1, 0);
         spawn(sched, socket_gen, socket, 0);
+ 
+        sched_run(sched);
+        pkt_stats(pkt1);       
+        
+        sink_stats(sink);  
+    } else if (scenario == 10) { // (PKT+DIST)  -> tcp socket -> SINK
+        printf("(PKT+DIST)  -> tcp socket -> SINK\n");
+        SCHED* sched=sched_create(10); // seconds
+        TSOCKET* tsocketA=tsocket_create(sched);
+        TSOCKET* tsocketB=tsocket_create(sched);
+        PKT* pkt1=pkt_create(sched,1,3, 0); // from, to, flow_id
+        DIST* distfunc=dist_create(sched, 10,100); // Transmission (Mbps), Mean Packet size (Bytes)
+        SINK* sink=sink_create(sched);
+        
+        pkt1->out=(void *)tsocket_put0; pkt1->typex=tsocketA; pkt1->arrivalfn=dist_exec; pkt1->arrivalfntype=distfunc;
+        
+        tsocketA->out1=(void *)tsocket_put1; tsocketA->typex1=tsocketB;
+        tsocketB->out0=(void *)sink_put; tsocketB->typex0=sink;
+
+        spawn(sched, pkt_gen, pkt1, 0);
+        spawn(sched, tsocket_gen, tsocketA, 0);
+        spawn(sched, tsocket_gen, tsocketB, 0);
  
         sched_run(sched);
         pkt_stats(pkt1);       

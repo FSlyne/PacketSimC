@@ -352,6 +352,8 @@ int qprotect(QPROT* self, DUALQ* dualq, packet* p) {
 }
 
   // DUALQ AQM
+  // https://specification-search.cablelabs.com/CM-SP-MULPIv3.1
+  // https://tools.ietf.org/pdf/draft-ietf-tsvwg-aqm-dualq-coupled-08.pdf
 void dualq_init(DUALQ* self, SCHED* sched, STORE* store, int linerate, int countlimit, int bytelimit){
    self->sched=sched;
    self->store=store;
