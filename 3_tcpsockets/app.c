@@ -360,7 +360,7 @@ void appsink_put(APPSINK* self, rawdata *rd) {
     self->pkt_rcvd[n]++;
     self->bytes_rcvd[n]+=rd->size;
     self->delay_cumul[n]+=(self->sched->now-rd->create_time);
-    printf("d: %ld %d %d\n",self->sched->now, rd->create_time, self->sched->now-rd->create_time);
+    // printf("d: %ld %d %d\n",self->sched->now, rd->create_time, self->sched->now-rd->create_time);
     rawdata_destroy(rd);
     return;
 }

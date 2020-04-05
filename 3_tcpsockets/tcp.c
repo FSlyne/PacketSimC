@@ -351,28 +351,22 @@ void  tsocket_gen(TSOCKET* self) {
             p=packet_create(pktcnt++, self->sched->now, 0,0 ,0, 100);
             p->s = s;
             p->s->rd=rd;
-            printf("~~ %d %d\n", p->id, p->s->rd->id);
             self->out1(self->typex1, p);
          }
          if (mask & 2) {
-            int x = store_count(self->store);
             store_rpop(self->store, &p, &key);
             rd=p->s->rd;
-            printf(">>> %d %d %d\n", p->id, rd->id, x);
             self->out0(self->typex0, rd);
-            // tcpseg_destroy(s);
-            printf("%d %d\n", key, p->id);
+            tcpseg_destroy(p->s);
             packet_destroy(p);
          }         
     }
 }
 
 void tsocket_put0(TSOCKET* self, rawdata* rd){
-    printf("--%d\n", rd->id);
     astore_insert(self->astore,rd, 0);
 }
 
 void tsocket_put1(TSOCKET* self, packet* p){
-    printf("++ %d %d\n", p->id, p->s->rd->id);
     store_insert(self->store, p, 0);
 }
