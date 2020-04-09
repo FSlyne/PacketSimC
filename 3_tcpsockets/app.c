@@ -306,6 +306,16 @@ void rawdata_destroy(rawdata* obj){
     }
 }
 
+rawdata* rawdata_copy(rawdata* target) {
+    rawdata* obj=(rawdata*) malloc(sizeof(rawdata));
+    obj->id=target->id;
+    obj->create_time=target->create_time;
+    obj->size=target->size;
+    obj->flow_id=target->flow_id;
+    return obj;
+}
+
+
 void appgen_init(APPGEN* self, SCHED* sched, int flow_id) {
     self->pktcnt=0;
     self->sched=sched;
@@ -356,11 +366,11 @@ APPSINK* appsink_create(SCHED* sched) {
 void appsink_put(APPSINK* self, rawdata *rd) {
     int n = rd->flow_id;
     if (n>=9) n=9;
-    // printf("s: %d %d >%d %d %d\n", self->sched->now, (self->sched->now-p->create_time), p->id, p->source, p->dest);
+    //printf("s: %d %d %d\n", self->sched->now, (self->sched->now-rd->create_time),rd->id);
     self->pkt_rcvd[n]++;
     self->bytes_rcvd[n]+=rd->size;
     self->delay_cumul[n]+=(self->sched->now-rd->create_time);
-    // printf("d: %ld %d %d\n",self->sched->now, rd->create_time, self->sched->now-rd->create_time);
+    //printf("d: %ld %d %d\n",self->sched->now, rd->create_time, self->sched->now-rd->create_time);
     rawdata_destroy(rd);
     return;
 }

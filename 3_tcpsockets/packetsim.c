@@ -29,7 +29,7 @@
 
 int main() {
    
-    int scenario = 12;
+    int scenario = 11;
     if (scenario == 1) { // (PKT+DIST, PKT+DIST) -> NULL BOX -> SINK
          printf("(PKT+DIST, PKT+DIST) -> NULL BOX -> SINK\n");
          SCHED* sched=sched_create(10); // seconds
@@ -250,18 +250,25 @@ int main() {
         SCHED* sched=sched_create(10); // seconds
         TSOCKET* tsocketA=tsocket_create(sched);
         TSOCKET* tsocketB=tsocket_create(sched);
+        QUEUE* uplink=queue_create(sched,20, 100, 0, 100); // Mbps, Packet Count limit, Packet Byte limit, latency (usec)
+        QUEUE* downlink=queue_create(sched,20, 100, 0, 100); // Mbps, Packet Count limit, Packet Byte limit, latency (usec)
         APPGEN* app=appgen_create(sched,1); // flow_id
         DIST* distfunc=dist_create(sched, 10,100); // Transmission (Mbps), Mean Packet size (Bytes)
         APPSINK* appsink=appsink_create(sched);
         
         app->out=(void *)tsocket_put0; app->typex=tsocketA; app->arrivalfn=dist_exec; app->arrivalfntype=distfunc;
         
-        tsocketA->out1=(void *)tsocket_put1; tsocketA->typex1=tsocketB;
+        tsocketA->out1=(void *)queue_put; tsocketA->typex1=uplink;
+        uplink->out=tsocket_put1; uplink->typex=tsocketB;
         tsocketB->out0=(void *)appsink_put; tsocketB->typex0=appsink;
+        tsocketB->out1=(void *)queue_put; tsocketB->typex1=downlink; // backflow for ack's
+        downlink->out=(void *)tsocket_put1; downlink->typex=tsocketA; // backflow for ack's
 
         spawn(sched, app_gen, app, 0);
         spawn(sched, tsocket_gen, tsocketA, 0);
         spawn(sched, tsocket_gen, tsocketB, 0);
+        spawn(sched, queue_gen, uplink, 0);
+        spawn(sched, queue_gen, downlink,0);
  
         sched_run(sched);
         appgen_stats(app);       

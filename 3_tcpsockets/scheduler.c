@@ -293,7 +293,7 @@ void sched_yield(SCHED* self, jmp_buf flag, long then) {
    }
    
    if (self->now <= self->finish*self->granularity) {
-      printf("sched_yield: premature exhaustion 1\n");
+      printf("sched_yield: %ld exhaustion 1\n", self->now);
    }
    // If scheduler gets this far, it has run out of events
    self->running=0;
@@ -307,7 +307,7 @@ void sched_run(SCHED* self) {
       (*func_ptr)(typex);
    }
    if (self->now <= self->finish*self->granularity) {
-      printf("sched_yield: premature exhaustion 2\n");
+      printf("sched_yield: %ld exhaustion 2\n", self->now);
    }
    // If scheduler gets this far, there are either no processes, or the first process has stopped.
    self->running=0;

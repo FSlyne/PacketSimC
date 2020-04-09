@@ -11,7 +11,11 @@ typedef struct {
 } rawdata;
 
 typedef struct {
+   int num;
+   int type; // 1=data, 2=ack
    rawdata* rd;
+   long ctime; // creation time for data, returned in ack
+   int wnd;
 } tcpseg;
 
 typedef struct {

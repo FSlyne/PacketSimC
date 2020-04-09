@@ -61,6 +61,7 @@ void astore_rpop(ASTORE* self, rawdata **rd, int *key);
 rawdata* rawdata_create_noinit();
 rawdata* rawdata_create(int id, int t, int size, int flow_id);
 void rawdata_destroy(rawdata* obj);
+rawdata* rawdata_copy(rawdata* target);
 void rawdata_init(rawdata* self, int id, int t, int size, int flow_id);
 
 
