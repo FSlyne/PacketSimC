@@ -32,9 +32,9 @@ typedef struct {
     void *typex0;
     void *typex1;
     unsigned mask;
-    long RTTm; // measured RTT; https://www.geeksforgeeks.org/tcp-timers/
-    long RTTs; // smoothed RTT;
-    long RTTd; // deviated RTT;
+    float RTTm; // measured RTT; https://www.geeksforgeeks.org/tcp-timers/
+    float RTTs; // smoothed RTT;
+    float RTTd; // deviated RTT;
     long RTO; // retransmission Timeout
 } TSOCKET;
 
@@ -48,7 +48,7 @@ void tstore_insert_unique_raw(struct tcpbuffer **st, struct tcpbuffer **en,  tcp
 void tstore_insert_unique(TSTORE* self,  tcpseg* s, int key);
 void tstore_lpush(TSTORE* self, tcpseg* s, int key);
 void tstore_read(TSTORE* self, tcpseg **s, int *key);
-void tstore_rpop_block(TSTORE* self, tcpseg **s, int *key);
+void tstore_rpop_block(int pid, TSTORE* self, tcpseg **s, int *key);
 void tstore_rpop_raw(struct tcpbuffer **st, struct tcpbuffer **en, tcpseg **s, int *key);
 void tstore_rpop(TSTORE* self, tcpseg **s, int *key);
 void tstore_rget(TSTORE* self,  tcpseg **s, int *key);
@@ -61,10 +61,10 @@ void tcpseg_destroy(tcpseg* obj);
 void tcpseg_init(tcpseg* self, rawdata* rd, int num, int type, long ctime, int wnd);
 TSOCKET* tsocket_create(SCHED* sched);
 void tsocket_destroy(TSOCKET* self);
-void  tsocket_gen(TSOCKET* self);
+void  tsocket_gen(int pid, TSOCKET* self);
 void tsocket_init(TSOCKET* self, SCHED* sched, STORE* store, ASTORE* astore, TSTORE* txstore,  TSTORE* rxstore);
 void tsocket_put0(TSOCKET* self, rawdata* rd);
 void tsocket_put1(TSOCKET* self, packet* p);
-void tseg_transmit(TSOCKET* self);
-void tseg_receive(TSOCKET* self);
-unsigned int tsocket_select(TSOCKET* self);
+void tseg_transmit(int pid, TSOCKET* self);
+void tseg_receive(int pid, TSOCKET* self);
+unsigned int tsocket_select(int pid, TSOCKET* self);

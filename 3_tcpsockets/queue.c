@@ -34,7 +34,7 @@ void queue_destroy(QUEUE* self){
     }
 }
 
-void  queue_gen(QUEUE* self) {
+void  queue_gen(int pid, QUEUE* self) {
    int stackspace[20000] ; stackspace[3]=45;
     if (self->status == 0) { // first time queue_gen  is run
         self->status = 1;
@@ -42,14 +42,14 @@ void  queue_gen(QUEUE* self) {
     packet* p;
     int key;
     while (self->sched->running > 0) {
-         store_rpop_block(self->store, &p, &key);
+         store_rpop_block(pid, self->store, &p, &key);
          self->countsize--;
          self->bytesize-=p->size;
          int interval=p->size*8/self->linerate;
          self->myclock=(self->myclock>self->sched->now)?self->myclock:self->sched->now;
          self->myclock+=interval; // microseconds
          // postprocess
-         waituntil(self->sched,self->myclock+self->latency);
+         waituntil(self->sched,pid,self->myclock+self->latency);
          // printf("%ld returning from scheduler %d\n", self->sched->now, p->flow_id);
          self->out(self->typex, p);
     }

@@ -343,19 +343,19 @@ void tstore_destroy(TSTORE* obj){
 //   }
 //}
 
-void tstore_rpop_block(TSTORE* self, tcpseg **s, int *key)
+void tstore_rpop_block(int pid, TSTORE* self, tcpseg **s, int *key)
 {
     tstore_rpop(self, s, key);
     while (*s == NULL) { // waiself->tstore,t for a tcpseg, queue is empty
-        waitfor(self->sched, 10);
+        waitfor(self->sched, pid, 10);
         tstore_rpop(self, s, key);
     }
 }
 
-void tstore_rget_block(TSTORE* self, tcpseg **s, int *key) {
+void tstore_rget_block(int pid, TSTORE* self, tcpseg **s, int *key) {
     tstore_rget(self, s, key);
     while (*s == NULL) { // waiself->tstore,t for a tcpseg, queue is empty
-        waitfor(self->sched, 10);
+        waitfor(self->sched, pid, 10);
         tstore_rget(self, s, key);
     }
 }
@@ -404,7 +404,7 @@ void tsocket_init(TSOCKET* self, SCHED* sched, STORE* store, ASTORE* astore, TST
     self->RTTm=0; // measured RTT; https://www.geeksforgeeks.org/tcp-timers/
     self->RTTs=0; // smoothed RTT;
     self->RTTd=0; // deviated RTT;
-    self->RTO=0; // retransmission Timeout
+    self->RTO=10; // retransmission Timeout
 }
 
 TSOCKET* tsocket_create(SCHED* sched){
@@ -437,7 +437,7 @@ void tseg_ack(TSOCKET* self, int acknum, long ctime) {
     self->out1(self->typex1, p);    
 }
 
-void tseg_transmit(TSOCKET* self)  {
+void tseg_transmit(int pid, TSOCKET* self)  {
     int stackspace[20000] ; stackspace[3]=45;
     int pktcnt=0;
     int key=0;
@@ -445,10 +445,10 @@ void tseg_transmit(TSOCKET* self)  {
     packet* p;
     while (self->sched->running > 0) {
         do {
-            waitfor(self->sched,10);
+            waitfor(self->sched, pid, 10);
             //printf("%d %d\n", key, self->rwnd+self->lastackrcvd);
         } while (key > self->txwnd+self->lastackrcvd);
-        tstore_rget_block(self->txstore, &s, &key);
+        tstore_rget_block(pid, self->txstore, &s, &key);
         //printf("<<%d %d\n", tstore_count(self->txstore), key);
         p=packet_create(pktcnt++, self->sched->now, 0,0 ,0, 100);
         p->s = s;
@@ -460,14 +460,14 @@ void tseg_transmit(TSOCKET* self)  {
     }
 }
 
-void tseg_receive(TSOCKET* self)  {
+void tseg_receive(int pid, TSOCKET* self)  {
     int stackspace[20000] ; stackspace[3]=45;
     int key;
     tcpseg* s;
     int rcount=0;
     int lastacksent=0;
     while (self->sched->running > 0) {
-        tstore_rpop_block(self->rxstore, &s, &key);
+        tstore_rpop_block(pid, self->rxstore, &s, &key);
         self->out0(self->typex0, s->rd); // out to app interface
         // printf(">>%d %d\n", tstore_count(self->rxstore), key);
         if (key >= self->rxwnd + lastacksent) {
@@ -480,22 +480,35 @@ void tseg_receive(TSOCKET* self)  {
     }
 }
 
-unsigned int tsocket_select(TSOCKET* self) {
+unsigned int tsocket_select(int pid, TSOCKET* self) {
     unsigned int omask = 0;
     while (0<1) {
         omask = 0;
         if (astore_count(self->astore) > 0) omask |= 1 << 0;
         if (store_count(self->store) > 0) omask |= 1 << 1;
         if (omask > 0) return omask;
-        waitfor(self->sched, 10);
+        waitfor(self->sched, pid, 10);
     }
     return omask;
 }
 
-void  tsocket_gen(TSOCKET* self) {
+void tcp_timer0(int pid, TSOCKET* self) {
+    int stackspace[20000] ; stackspace[3]=45;
+    while (self->sched->running > 0) {
+        waitfor(self->sched, pid, self->RTO * (1+self->txwnd/2)); // RTO can be reset by tsocket_gen
+        // printf("timeout %d\n", self->RTO);
+        self->txwnd=self->txwnd/2;
+        if (self->txwnd ==0 ) self->txwnd = 1;
+        if (self->txwnd > 1) printf("Setting TX window to %d\n", self->txwnd);
+    }
+}
+
+void  tsocket_gen(int pid, TSOCKET* self) {
     int stackspace[20000] ; stackspace[3]=45;
     spawn(self->sched, tseg_transmit, self, 0); // spawn the tseg_transmit subprocess
     spawn(self->sched, tseg_receive, self, 0); // spawn the tseg_receive subprocess
+    int pid_timer0=self->sched->pid; // select the next pid
+    spawn(self->sched, tcp_timer0, self, 0); // spawn the tseg_receive subprocess
     rawdata* rd;
     packet* p;
     tcpseg* s;
@@ -504,7 +517,7 @@ void  tsocket_gen(TSOCKET* self) {
     int state=0;
     unsigned int mask = 0;
     while (self->sched->running > 0) {
-         mask = tsocket_select(self); // block if no I/O 
+         mask = tsocket_select(pid, self); // block if no I/O 
          if (mask & 1) { // app -> line
             astore_rpop(self->astore, &rd, &key);
             s=tcpseg_create(rd, tcpsegnum, 1, self->sched->now, self->txwnd); // 1 =data
@@ -518,10 +531,6 @@ void  tsocket_gen(TSOCKET* self) {
                 self->rxwnd=p->s->wnd;
                 tstore_insert_unique(self->rxstore, p->s, p->s->num);
             } else { // ack
-                //printf("ack received %d\n", p->s->num);
-                self->txwnd+=(p->s->num - self->lastackrcvd);
-                self->lastackrcvd=p->s->num;
-                tstore_del_upto(self->txstore, self->lastackrcvd);
                 if (state == 0) {
                     self->RTTm=(self->sched->now - p->s->ctime)*2;
                     self->RTO = self->RTTm;
@@ -538,8 +547,13 @@ void  tsocket_gen(TSOCKET* self) {
                     self->RTTd=(0.75)*self->RTTd + 0.25*(self->RTTm - self->RTTs);
                     self->RTO=self->RTTs+4*self->RTTd;
                 }
-                printf("%ld\n", self->RTO);
-                
+                self->RTO=200;
+                printf("%f %f %f %ld\n", self->RTTm, self->RTTs, self->RTTd, self->RTO);
+                //printf("ack received %d\n", p->s->num);
+                self->txwnd+=(p->s->num - self->lastackrcvd);
+                self->lastackrcvd=p->s->num;
+                sched_reset(self->sched, pid_timer0, self->sched->now+self->RTO*(1+self->txwnd/2));
+                tstore_del_upto(self->txstore, self->lastackrcvd);               
                 tcpseg_destroy(p->s);
             }
             packet_destroy(p);

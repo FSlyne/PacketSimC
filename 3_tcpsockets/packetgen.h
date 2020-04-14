@@ -35,7 +35,7 @@ DIST* dist_create(SCHED* sched, int linerate, int mean_pkt_size);
 long dist_exec(DIST* self);
 void pkt_init(PKT* self, SCHED* sched, int source, int dest, int flow_id);
 PKT* pkt_create(SCHED* sched, int source, int dest, int flow_id);
-void  pkt_gen(PKT* self);
+void  pkt_gen(int pid, PKT* self);
 void pkt_stats(PKT* self);
 void sink_init(SINK* self, SCHED* sched);
 SINK* sink_create(SCHED* sched);

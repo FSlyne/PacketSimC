@@ -258,7 +258,7 @@ void store_destroy(STORE* obj){
     }
 }
 
-void store_rpop_block(STORE* self, packet **p, int *key)
+void store_rpop_block(int pid, STORE* self, packet **p, int *key)
 {
    jmp_buf flag;
    store_rpop(self, p, key);
@@ -266,7 +266,7 @@ void store_rpop_block(STORE* self, packet **p, int *key)
       self->myclock=(self->myclock>self->sched->now)?self->myclock:self->sched->now;
       self->myclock+=10;
       if (setjmp(flag) == 0) {
-         sched_yield(self->sched, flag, self->myclock);
+         sched_yield(self->sched, pid, flag, self->myclock);
       } else {
          store_rpop(self, p, key);
       }

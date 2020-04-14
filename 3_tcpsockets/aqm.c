@@ -79,12 +79,12 @@ void wred_destroy(WRED* self){
 }
 
 
-void  wred_gen(WRED* self) {
+void  wred_gen(int pid, WRED* self) {
     int stackspace[20000] ; stackspace[3]=45;
     packet* p;
     int key;
     while (self->sched->running > 0) {
-         store_rpop_block(self->store, &p, &key);
+         store_rpop_block(pid, self->store, &p, &key);
          self->countsize--;
          self->bytesize-=p->size;
          int interval=p->size*8/self->linerate;
@@ -92,7 +92,7 @@ void  wred_gen(WRED* self) {
          self->myclock+=interval; // microseconds
          // postprocess
          // Need to replicate self.out.put(p) functionality
-         waituntil(self->sched,self->myclock+self->latency);
+         waituntil(self->sched,pid,self->myclock+self->latency);
          self->out(self->typex, p);
     }
 }
@@ -160,7 +160,7 @@ void pie_destroy(PIE* self){
     }
 }
 
-void pie_timer(PIE* self) { // pie update timer
+void pie_timer(int pid, PIE* self) { // pie update timer
    int stackspace[20000] ; stackspace[3]=45;
    while (0<1) {
       // Section 4.2. Drop probabilty calculations
@@ -190,24 +190,24 @@ void pie_timer(PIE* self) { // pie update timer
       
        printf("%ld\t%f\t%f\t%f\t%d\t%d\t%d\n", self->sched->now, self->p,self->alpha,self->beta,self->target, self->cqdelay, self->pqdelay);
        self->pqdelay=self->cqdelay;
-      waitfor(self->sched, self->tupdate );
+      waitfor(self->sched, pid, self->tupdate );
    }
 }
 
-void pie_gen(PIE* self) {
+void pie_gen(int pid, PIE* self) {
     int stackspace[20000] ; stackspace[3]=45;
     packet* p;
     int key;
     spawn(self->sched, pie_timer, self, 0); // spawn the pie timer subprocess
     while (self->sched->running > 0) {
-      store_rpop_block(self->store, &p, &key);
+      store_rpop_block(pid, self->store, &p, &key);
       self->cqdelay=self->sched->now - p->enqueue_time; // S4.3 latency calculation refers to Littles Law
       self->countsize--;
       self->bytesize-=p->size;
       int interval=p->size*8/self->linerate;
       self->myclock=(self->myclock>self->sched->now)?self->myclock:self->sched->now;
       self->myclock+=interval; // microseconds
-      waituntil(self->sched,self->myclock);
+      waituntil(self->sched,pid, self->myclock);
       //waituntil(self->sched,self->sched->now); // what is the queue handling delay required here
       //printf("%ld returning from scheduler %d\n", self->sched->now, p->flow_id);
       self->out(self->typex, p);
@@ -344,7 +344,7 @@ int qprotect(QPROT* self, DUALQ* dualq, packet* p) {
    bckt_id=pick_bucket(self, p);
    float probNative = dualq_laqm(dualq);
    qLscore=fill_bucket(self, bckt_id, p, probNative);
-   printf("%d %f %f %d %f %f\n", bckt_id, qLscore, probNative, dualq->lqdelay, self->criticalql, self->criticalqlproduct);
+   printf("%d %f %f %d %d %d\n", bckt_id, qLscore, probNative, dualq->lqdelay, self->criticalql, self->criticalqlproduct);
    if ((dualq->lqdelay > self->criticalql) && (dualq->lqdelay * qLscore > self->criticalqlproduct))
       return 1;
    else
@@ -436,7 +436,7 @@ int dualq_laqm(DUALQ* self) { // is this ProbNative?
 //   return self->sched->now+self->tupdate;
 //}
 
-void dualq_timer(DUALQ* self) { // dualq update timer
+void dualq_timer(int pid, DUALQ* self) { // dualq update timer
    int stackspace[20000] ; stackspace[3]=45;
    while (0<1) {
       self->p = self->p + (float) (self->alpha_U * (self->cqdelay - self->target) +
@@ -448,18 +448,18 @@ void dualq_timer(DUALQ* self) { // dualq update timer
       printf("%ld\t%f\t%f\t%f\t%d\t%d\t%d\n",
              self->sched->now, self->p,self->alpha_U,self->beta_U,self->target, self->cqdelay, self->pqdelay);
       self->pqdelay=self->cqdelay;
-      waitfor(self->sched, self->tupdate );
+      waitfor(self->sched, pid, self->tupdate );
    }
 }
 
-void dualq_gen(DUALQ* self) {
+void dualq_gen(int pid, DUALQ* self) {
     int stackspace[20000] ; stackspace[3]=45;
     packet* p;
     int key;
     spawn(self->sched, dualq_timer, self, 0); // spawn the dualq timer subprocess
     while (self->sched->running > 0) {
       // self->pqdelay=self->cqdelay;
-         store_rpop_block(self->store, &p, &key);
+         store_rpop_block(pid, self->store, &p, &key);
          if (p->flow_id == 0) {
             int redirect = qprotect(self->qprot, self, p);
             if (redirect > 0) {
@@ -481,7 +481,7 @@ void dualq_gen(DUALQ* self) {
       //printf("interval: %d\n", interval);
       self->myclock=(self->myclock>self->sched->now)?self->myclock:self->sched->now;
       self->myclock+=interval; // microseconds
-      waituntil(self->sched,self->myclock); // what is the queue handline delay here
+      waituntil(self->sched,pid, self->myclock); // what is the queue handline delay here
       //printf("%ld returning from scheduler %d\n", self->sched->now, p->flow_id);
       self->out(self->typex, p);
     }

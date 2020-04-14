@@ -30,25 +30,25 @@ void socket_destroy(SOCKET* self){
     }
 }
 
-unsigned int socket_select(SOCKET* self) {
+unsigned int socket_select(int pid, SOCKET* self) {
     unsigned int omask = 0;
     while (0<1) {
         omask = 0;
         if (store_count(self->store[0]) > 0) omask |= 1 << 0;
         if (store_count(self->store[1]) > 0) omask |= 1 << 1;
         if (omask > 0) return omask;
-        waitfor(self->sched, 10);
+        waitfor(self->sched, pid, 10);
     }
     return omask;
 }
 
-void  socket_gen(SOCKET* self) {
+void  socket_gen(int pid, SOCKET* self) {
     int stackspace[20000] ; stackspace[3]=45;
     packet* p;
     int key;
     unsigned int mask = 0;
     while (self->sched->running > 0) {
-         mask = socket_select(self); // block if no I/O 
+         mask = socket_select(pid, self); // block if no I/O 
          if (mask & 1) {
             store_rpop(self->store[0], &p, &key);
             self->out[1](self->typex[1], p);

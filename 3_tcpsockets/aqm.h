@@ -132,16 +132,16 @@ typedef struct {
 
 void pie_init(PIE* self, SCHED* sched, STORE* store, int linerate, int countlimit, int bytelimit);
 PIE* pie_create(SCHED* sched, int linerate, int countlimit, int bytelimit);
-void pie_gen(PIE* self);
+void pie_gen(int pid, PIE* self);
 void pie_put(PIE* self, packet* p);
 void wred_init(WRED* self, SCHED* sched, STORE* store, int linerate, int countlimit, int bytelimit, int latency);
 WRED* wred_create(SCHED* sched, int linerate, int countlimit, int bytelimit, int latency);
 void wred_destroy(WRED* self);
-void  wred_gen(WRED* self);
+void  wred_gen(int pid, WRED* self);
 void wred_put(WRED* self, packet* p);
 void dualq_init(DUALQ* self, SCHED* sched, STORE* store, int linerate, int countlimit, int bytelimit);
 DUALQ* dualq_create(SCHED* sched, int linerate, int countlimit, int bytelimit);
 int dualq_laqm(DUALQ* self);
-void dualq_gen(DUALQ* self);
+void dualq_gen(int pid, DUALQ* self);
 void dualq_put(DUALQ* self, packet* p);
-int dualq_update(DUALQ* self);
+void dualq_timer(int pid, DUALQ* self) ;

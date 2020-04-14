@@ -236,7 +236,7 @@ DBA* dba_create(SCHED* sched, TCONT* tcont) {
     return obj;
 }
 
-void dba_gen(DBA* self) {
+void dba_gen(int pid, DBA* self) {
     int stackspace[20000] ; stackspace[3]=45;
     int grant_start, grant_size, key;
     struct pbuffer *st_w, *st_r;
@@ -267,7 +267,7 @@ void dba_gen(DBA* self) {
        }
        
       if (setjmp(flag) == 0) {
-         sched_yield(self->sched, flag, self->sched->now+125);
+         sched_yield(self->sched, pid, flag, self->sched->now+125);
       } 
      }
 

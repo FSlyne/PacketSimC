@@ -38,7 +38,7 @@ typedef struct {
     SCHED* sched;
 } APPSINK;
 
-void app_gen(APPGEN* self);
+void app_gen(int pid, APPGEN* self);
 APPGEN* appgen_create(SCHED* sched, int flow_id);
 void appgen_init(APPGEN* self, SCHED* sched, int flow_id);
 void appgen_stats(APPGEN* self);
@@ -55,7 +55,7 @@ void astore_insert_raw(struct abuffer **st, struct abuffer **en, rawdata* rd, in
 void astore_insert(ASTORE* self, rawdata* rd, int key);
 void astore_lpush(ASTORE* self, rawdata* rd, int key);
 void astore_read(ASTORE* self, rawdata **rd, int *key);
-void astore_rpop_block(ASTORE* self, rawdata **rd, int *key);
+void astore_rpop_block(int pid, ASTORE* self, rawdata **rd, int *key);
 void astore_rpop_raw(struct abuffer **st, struct abuffer **en, rawdata **rd, int *key);
 void astore_rpop(ASTORE* self, rawdata **rd, int *key);
 rawdata* rawdata_create_noinit();

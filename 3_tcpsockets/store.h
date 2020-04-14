@@ -22,6 +22,6 @@ STORE* store_create(SCHED* sched);
 void store_init(STORE* self, SCHED* sched);
 void store_destroy(STORE* obj);
 void store_yield(STORE* self, jmp_buf flag);
-void store_rpop_block(STORE* self, packet **p, int *key);
+void store_rpop_block(int pid, STORE* self, packet **p, int *key);
 
 #endif // STORE_H

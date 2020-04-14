@@ -51,4 +51,4 @@ void tcont_control(TCONT* self, int slot, struct pbuffer **st, struct pbuffer **
 void tcont_put(TCONT* self, packet* p);
 void dba_init(DBA* self, SCHED* sched, TCONT* tcont);
 DBA* dba_create(SCHED* sched, TCONT* tcont);
-void  dba_gen(DBA* self);
+void  dba_gen(int pid, DBA* self);

@@ -68,7 +68,7 @@ PKT* pkt_create(SCHED* sched, int source, int dest, int flow_id) {
     return obj;
 }
 
-void  pkt_gen(PKT* self) {
+void  pkt_gen(int pid, PKT* self) {
    int stackspace[200000] ; stackspace[3]=45;
    while (self->sched->running > 0) {
          // preprocess
@@ -77,7 +77,7 @@ void  pkt_gen(PKT* self) {
                                  ((DIST*) self->arrivalfntype)->mean_pkt_size);
          // postprocess
          // Need to replicate self.out.put(p) functionality
-         waitfor(self->sched, self->arrivalfn(self->arrivalfntype));
+         waitfor(self->sched, pid, self->arrivalfn(self->arrivalfntype));
          self->out(self->typex, p);
     }
 }
