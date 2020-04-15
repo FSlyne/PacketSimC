@@ -8,6 +8,9 @@
  * Released under MIT licence.
  */
 
+#define min(a,b) (((a)<(b))?(a):(b))
+#define max(a,b) (((a)>(b))?(a):(b))
+
 void queue_init(QUEUE* self, SCHED* sched, STORE* store, int linerate, int countlimit, int bytelimit, int latency){
     self->sched=sched;
     self->store=store;
@@ -41,17 +44,23 @@ void  queue_gen(int pid, QUEUE* self) {
     }
     packet* p;
     int key;
+    self->myclock=self->sched->now;
     while (self->sched->running > 0) {
          store_rpop_block(pid, self->store, &p, &key);
          self->countsize--;
          self->bytesize-=p->size;
-         int interval=p->size*8/self->linerate;
-         self->myclock=(self->myclock>self->sched->now)?self->myclock:self->sched->now;
-         self->myclock+=interval; // microseconds
-         // postprocess
-         waituntil(self->sched,pid,self->myclock+self->latency);
-         // printf("%ld returning from scheduler %d\n", self->sched->now, p->flow_id);
+         long interval=p->size*8/self->linerate;
+         // self->myclock=(self->myclock>self->sched->now+self->latency)?self->myclock:self->sched->now+self->latency;
+         if (p->enqueue_time+self->latency > self->sched->now) {
+            //printf("yes\n");
+            waitfor(self->sched,pid,p->enqueue_time+self->latency - self->sched->now);
+         }
+         //printf("q: %d %ld %ld\n", p->id, self->sched->now, interval);
          self->out(self->typex, p);
+         waitfor(self->sched,pid,interval);
+
+         self->myclock = self->sched->now;
+         // printf("%ld returning from scheduler %d\n", self->sched->now, p->flow_id);
     }
 }
 

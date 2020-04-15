@@ -499,7 +499,7 @@ void tcp_timer0(int pid, TSOCKET* self) {
         // printf("timeout %d\n", self->RTO);
         self->txwnd=self->txwnd/2;
         if (self->txwnd ==0 ) self->txwnd = 1;
-        if (self->txwnd > 1) printf("Setting TX window to %d\n", self->txwnd);
+        if (self->txwnd > 1) printf("Decreasing TX window to %d\n", self->txwnd);
     }
 }
 
@@ -551,6 +551,7 @@ void  tsocket_gen(int pid, TSOCKET* self) {
                 printf("%f %f %f %ld\n", self->RTTm, self->RTTs, self->RTTd, self->RTO);
                 //printf("ack received %d\n", p->s->num);
                 self->txwnd+=(p->s->num - self->lastackrcvd);
+                if (self->txwnd > 1) printf("Increasing TX window to %d\n", self->txwnd);
                 self->lastackrcvd=p->s->num;
                 sched_reset(self->sched, pid_timer0, self->sched->now+self->RTO*(1+self->txwnd/2));
                 tstore_del_upto(self->txstore, self->lastackrcvd);               

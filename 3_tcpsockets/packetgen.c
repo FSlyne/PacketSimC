@@ -77,8 +77,8 @@ void  pkt_gen(int pid, PKT* self) {
                                  ((DIST*) self->arrivalfntype)->mean_pkt_size);
          // postprocess
          // Need to replicate self.out.put(p) functionality
-         waitfor(self->sched, pid, self->arrivalfn(self->arrivalfntype));
          self->out(self->typex, p);
+         waitfor(self->sched, pid, self->arrivalfn(self->arrivalfntype));
     }
 }
 
@@ -111,7 +111,8 @@ void sink_put(SINK* self, packet *p) {
     self->pkt_rcvd[n]++;
     self->bytes_rcvd[n]+=p->size;
     self->delay_cumul[n]+=(self->sched->now-p->create_time);
-    // printf("d: %ld %d %d\n",self->sched->now, p->create_time, self->sched->now-p->create_time);
+    // printf("%ld\n", self->delay_cumul[n]);
+    //printf("d: %d %ld %d %d\n",p->id, self->sched->now, p->create_time, self->sched->now-p->create_time);
     packet_destroy(p);
     return;
 }

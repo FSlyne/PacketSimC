@@ -337,8 +337,8 @@ void app_gen(int pid, APPGEN* self) {
                                  ((DIST*) self->arrivalfntype)->mean_pkt_size, self->flow_id);
          // postprocess
          // Need to replicate self.out.put(p) functionality
-         waitfor(self->sched, pid, self->arrivalfn(self->arrivalfntype));
          self->out(self->typex, rd);
+         waitfor(self->sched, pid, self->arrivalfn(self->arrivalfntype));
     }
 }
 
@@ -370,7 +370,7 @@ void appsink_put(APPSINK* self, rawdata *rd) {
     self->pkt_rcvd[n]++;
     self->bytes_rcvd[n]+=rd->size;
     self->delay_cumul[n]+=(self->sched->now-rd->create_time);
-    //printf("d: %ld %d %d\n",self->sched->now, rd->create_time, self->sched->now-rd->create_time);
+    // printf("d: %ld %d %d\n",self->sched->now, rd->create_time, self->sched->now-rd->create_time);
     rawdata_destroy(rd);
     return;
 }

@@ -59,9 +59,9 @@ int main() {
          printf("Single queue. PKT+DIST -> QUEUE-> SINK\n");
          SCHED* sched=sched_create(10); // seconds
          PKT* pkt1=pkt_create(sched,1,10, 1); // from, to, flow_id
-         DIST* distfunc=dist_create(sched, 10,100); // Transmission (Mbps), Mean Packet size (Bytes), Poisson, exponentially distributed
+         DIST* distfunc=dist_create(sched, 10,1000); // Transmission (Mbps), Mean Packet size (Bytes), Poisson, exponentially distributed
          SINK* sink=sink_create(sched);
-         QUEUE* queue=queue_create(sched,20, 0, 0, 100); // Mbps, Packet Count limit, Packet Byte limit, latency (usec)
+         QUEUE* queue=queue_create(sched,100, 0, 0, 100); // Mbps, Packet Count limit, Packet Byte limit, latency (usec)
 
          pkt1->out=(void *)queue_put; pkt1->typex=queue; pkt1->arrivalfn=dist_exec; pkt1->arrivalfntype=distfunc;
          queue->out=(void *)sink_put; queue->typex=sink;
@@ -250,10 +250,10 @@ int main() {
         SCHED* sched=sched_create(10); // seconds
         TSOCKET* tsocketA=tsocket_create(sched);
         TSOCKET* tsocketB=tsocket_create(sched);
-        QUEUE* uplink=queue_create(sched,20, 0, 0, 100); // Mbps, Packet Count limit, Packet Byte limit, latency (usec)
-        QUEUE* downlink=queue_create(sched,20, 0, 0, 100); // Mbps, Packet Count limit, Packet Byte limit, latency (usec)
+        QUEUE* uplink=queue_create(sched,10, 0, 0, 100); // Mbps, Packet Count limit, Packet Byte limit, latency (usec)
+        QUEUE* downlink=queue_create(sched,10, 0, 0, 100); // Mbps, Packet Count limit, Packet Byte limit, latency (usec)
         APPGEN* app=appgen_create(sched,1); // flow_id
-        DIST* distfunc=dist_create(sched, 10,1000); // Transmission (Mbps), Mean Packet size (Bytes)
+        DIST* distfunc=dist_create(sched, 20,100); // Transmission (Mbps), Mean Packet size (Bytes)
         APPSINK* appsink=appsink_create(sched);
         
         app->out=(void *)tsocket_put0; app->typex=tsocketA; app->arrivalfn=dist_exec; app->arrivalfntype=distfunc;

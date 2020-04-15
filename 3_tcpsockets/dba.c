@@ -245,7 +245,6 @@ void dba_gen(int pid, DBA* self) {
     st_r=(struct pbuffer *) NULL;
     en_w=(struct pbuffer *) NULL;
     en_r=(struct pbuffer *) NULL;
-    jmp_buf flag;
     packet* p;
     // Create the frame
     
@@ -265,10 +264,7 @@ void dba_gen(int pid, DBA* self) {
          }
          frame_rpop(&(self->st_frame), &(self->en_frame), &st_r, &en_r, &grant_start, &grant_size);
        }
-       
-      if (setjmp(flag) == 0) {
-         sched_yield(self->sched, pid, flag, self->sched->now+125);
-      } 
+      waitfor(self->sched, pid, 125);
      }
 
 }

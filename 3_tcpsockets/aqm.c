@@ -92,8 +92,8 @@ void  wred_gen(int pid, WRED* self) {
          self->myclock+=interval; // microseconds
          // postprocess
          // Need to replicate self.out.put(p) functionality
-         waituntil(self->sched,pid,self->myclock+self->latency);
          self->out(self->typex, p);
+         waituntil(self->sched,pid,self->myclock+self->latency);
     }
 }
 
@@ -207,10 +207,10 @@ void pie_gen(int pid, PIE* self) {
       int interval=p->size*8/self->linerate;
       self->myclock=(self->myclock>self->sched->now)?self->myclock:self->sched->now;
       self->myclock+=interval; // microseconds
-      waituntil(self->sched,pid, self->myclock);
       //waituntil(self->sched,self->sched->now); // what is the queue handling delay required here
       //printf("%ld returning from scheduler %d\n", self->sched->now, p->flow_id);
       self->out(self->typex, p);
+      waituntil(self->sched,pid, self->myclock);
     }
 }
 
