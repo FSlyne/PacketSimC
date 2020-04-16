@@ -43,7 +43,7 @@ unsigned int socket_select(int pid, SOCKET* self) {
 }
 
 void  socket_gen(int pid, SOCKET* self) {
-    int stackspace[20000] ; stackspace[3]=45;
+    int stackspace[1000] ; stackspace[3]=45;
     packet* p;
     int key;
     unsigned int mask = 0;

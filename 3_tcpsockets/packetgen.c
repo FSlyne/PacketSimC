@@ -69,7 +69,7 @@ PKT* pkt_create(SCHED* sched, int source, int dest, int flow_id) {
 }
 
 void  pkt_gen(int pid, PKT* self) {
-   int stackspace[200000] ; stackspace[3]=45;
+   int stackspace[1000] ; stackspace[3]=45;
    while (self->sched->running > 0) {
          // preprocess
          //printf("Creating a packet\n");

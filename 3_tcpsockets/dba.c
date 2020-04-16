@@ -237,7 +237,7 @@ DBA* dba_create(SCHED* sched, TCONT* tcont) {
 }
 
 void dba_gen(int pid, DBA* self) {
-    int stackspace[20000] ; stackspace[3]=45;
+    int stackspace[1000] ; stackspace[3]=45;
     int grant_start, grant_size, key;
     struct pbuffer *st_w, *st_r;
     struct pbuffer *en_w, *en_r;

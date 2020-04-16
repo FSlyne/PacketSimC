@@ -29,7 +29,7 @@
 
 int main() {
    
-    int scenario = 11;
+    int scenario = 12;
     if (scenario == 1) { // (PKT+DIST, PKT+DIST) -> NULL BOX -> SINK
          printf("(PKT+DIST, PKT+DIST) -> NULL BOX -> SINK\n");
          SCHED* sched=sched_create(10); // seconds

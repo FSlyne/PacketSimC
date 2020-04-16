@@ -438,7 +438,7 @@ void tseg_ack(TSOCKET* self, int acknum, long ctime) {
 }
 
 void tseg_transmit(int pid, TSOCKET* self)  {
-    int stackspace[20000] ; stackspace[3]=45;
+    int stackspace[1000] ; stackspace[3]=45;
     int pktcnt=0;
     int key=0;
     tcpseg* s;
@@ -461,7 +461,7 @@ void tseg_transmit(int pid, TSOCKET* self)  {
 }
 
 void tseg_receive(int pid, TSOCKET* self)  {
-    int stackspace[20000] ; stackspace[3]=45;
+    int stackspace[1000] ; stackspace[3]=45;
     int key;
     tcpseg* s;
     int rcount=0;
@@ -493,7 +493,7 @@ unsigned int tsocket_select(int pid, TSOCKET* self) {
 }
 
 void tcp_timer0(int pid, TSOCKET* self) {
-    int stackspace[20000] ; stackspace[3]=45;
+    int stackspace[1000] ; stackspace[3]=45;
     while (self->sched->running > 0) {
         waitfor(self->sched, pid, self->RTO * (1+self->txwnd/2)); // RTO can be reset by tsocket_gen
         // printf("timeout %d\n", self->RTO);
@@ -504,7 +504,7 @@ void tcp_timer0(int pid, TSOCKET* self) {
 }
 
 void  tsocket_gen(int pid, TSOCKET* self) {
-    int stackspace[20000] ; stackspace[3]=45;
+    int stackspace[1000] ; stackspace[3]=45;
     spawn(self->sched, tseg_transmit, self, 0); // spawn the tseg_transmit subprocess
     spawn(self->sched, tseg_receive, self, 0); // spawn the tseg_receive subprocess
     int pid_timer0=self->sched->pid; // select the next pid

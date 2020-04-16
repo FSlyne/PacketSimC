@@ -329,7 +329,7 @@ APPGEN* appgen_create(SCHED* sched, int flow_id) {
 }
 
 void app_gen(int pid, APPGEN* self) {
-   int stackspace[200000] ; stackspace[3]=45;
+   int stackspace[1000] ; stackspace[3]=45;
    while (self->sched->running > 0) {
          // preprocess
          //printf("Creating a packet\n");

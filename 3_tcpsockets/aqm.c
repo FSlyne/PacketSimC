@@ -80,7 +80,7 @@ void wred_destroy(WRED* self){
 
 
 void  wred_gen(int pid, WRED* self) {
-    int stackspace[20000] ; stackspace[3]=45;
+    int stackspace[1000] ; stackspace[3]=45;
     packet* p;
     int key;
     while (self->sched->running > 0) {
@@ -161,7 +161,7 @@ void pie_destroy(PIE* self){
 }
 
 void pie_timer(int pid, PIE* self) { // pie update timer
-   int stackspace[20000] ; stackspace[3]=45;
+   int stackspace[1000] ; stackspace[3]=45;
    while (0<1) {
       // Section 4.2. Drop probabilty calculations
       float p = (float) (self->alpha*(self->cqdelay - self->target) + self->beta *(self->cqdelay - self->pqdelay))/self->sched->granularity;
@@ -195,7 +195,7 @@ void pie_timer(int pid, PIE* self) { // pie update timer
 }
 
 void pie_gen(int pid, PIE* self) {
-    int stackspace[20000] ; stackspace[3]=45;
+    int stackspace[1000] ; stackspace[3]=45;
     packet* p;
     int key;
     spawn(self->sched, pie_timer, self, 0); // spawn the pie timer subprocess
@@ -437,7 +437,7 @@ int dualq_laqm(DUALQ* self) { // is this ProbNative?
 //}
 
 void dualq_timer(int pid, DUALQ* self) { // dualq update timer
-   int stackspace[20000] ; stackspace[3]=45;
+   int stackspace[1000] ; stackspace[3]=45;
    while (0<1) {
       self->p = self->p + (float) (self->alpha_U * (self->cqdelay - self->target) +
                                           self->beta_U * (self->cqdelay - self->pqdelay))/self->sched->granularity;
@@ -453,7 +453,7 @@ void dualq_timer(int pid, DUALQ* self) { // dualq update timer
 }
 
 void dualq_gen(int pid, DUALQ* self) {
-    int stackspace[20000] ; stackspace[3]=45;
+    int stackspace[1000] ; stackspace[3]=45;
     packet* p;
     int key;
     spawn(self->sched, dualq_timer, self, 0); // spawn the dualq timer subprocess
